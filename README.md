@@ -15,7 +15,9 @@ PC操作画面・デバイス設定画面・スマホ表示画面とCloudflare P
 
 本番のスマホ表示画面: https://0913hackathon.pages.dev/display.html
 
-GitHub連携済み。`main` へのpushで本番へ自動デプロイします。
+GitHubリポジトリとproduction branch `main` は設定済み。初回デプロイはAPIから起動し、約27秒で成功しました。本番3画面とKV読み取りを確認済みです。
+
+**残作業:** pushによる自動デプロイは未確認（検証pushでは起動せず）。CloudflareダッシュボードからGitHubアプリの対象リポジトリアクセスを確認・認可後、mainへpushして自動起動を再検証してください。
 
 ## ローカル開発
 
