@@ -15,6 +15,25 @@ pc.on('pageerror', (e) => fail(`PC page error: ${e.message}`));
 phone.on('pageerror', (e) => fail(`phone page error: ${e.message}`));
 
 try {
+  // 0. スマホ未接続の PC 単独: 既定で PC 再生になる
+  const soloCtx = await browser.newContext({ viewport: { width: 1280, height: 900 } });
+  const solo = await soloCtx.newPage();
+  solo.on('pageerror', (e) => fail(`solo PC page error: ${e.message}`));
+  await solo.goto(`${base}/`);
+  await solo.click('button[data-chip="chip_sunset"]');
+  await solo.waitForSelector('#interviewView.is-active', { timeout: 15000 });
+  await solo.click('button[data-option="cool"]');
+  await solo.waitForSelector('#sceneView.is-active', { timeout: 20000 });
+  await solo.click('#startExperience');
+  await solo.waitForFunction(() => document.getElementById('pcVideo').src.includes('scene1-shonan-sunset'), null, { timeout: 10000 });
+  const soloStatus = (await solo.textContent('#outputStatus')).trim();
+  const soloAudio = await solo.evaluate(() => document.getElementById('pcAudio').src.split('/').pop());
+  log('solo PC: output =', soloStatus, '| video hidden =', await solo.isHidden('#pcVideo'), '| audio =', soloAudio, '| filter =', await solo.evaluate(() => document.getElementById('pcVideo').style.filter));
+  if (!/PC/.test(soloStatus)) fail('default output should be PC when no phone is paired');
+  if (await solo.isHidden('#pcVideo')) fail('PC video should be visible in PC mode');
+  if (!/ocean-waves/.test(soloAudio)) fail('PC audio src not set');
+  await soloCtx.close();
+
   // 1. PC: デバイス設定画面でコード発行
   await pc.goto(`${base}/pair.html`);
   await pc.waitForFunction(() => /^\d{4}$/.test(document.getElementById('code').textContent.trim()), null, { timeout: 15000 });
@@ -49,6 +68,15 @@ try {
   if (await pc.evaluate(() => localStorage.getItem('pref.body')) !== 'cool') fail('body preference not remembered');
   await pc.click('#startExperience');
   await pc.waitForSelector('#experienceView.is-active');
+  const autoOutput = (await pc.textContent('#outputStatus')).trim();
+  log('output (phone paired):', autoOutput);
+  if (!/スマホ/.test(autoOutput)) fail('output should switch to the phone automatically when paired');
+  // 出力切替: PC にすると PC 側で映像が出る → スマホに戻す
+  await pc.click('#outputPc');
+  await pc.waitForFunction(() => !document.getElementById('pcVideo').hidden && document.getElementById('pcVideo').src.includes('scene1'), null, { timeout: 5000 });
+  log('switched to PC: output =', (await pc.textContent('#outputStatus')).trim());
+  await pc.click('#outputPhone');
+  if (!(await pc.isHidden('#pcVideo'))) fail('PC video should hide when output is the phone');
 
   // 4. スマホ: 映像・音が切り替わる（ポーリング1.5秒）
   await phone.waitForFunction(() => document.getElementById('video').src.includes('scene1-shonan-sunset'), null, { timeout: 10000 });
