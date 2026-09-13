@@ -115,7 +115,7 @@ curl --fail http://localhost:8788/api/generate-scene \
 不正なJSONや文字列ではない `text` は400、POST以外は405です。
 
 生成処理は `lib/scene-generator.js` の `mockGenerateScene(text)` に分離しています。
-`ANTHROPIC_API_KEY` が設定されていれば LLM（後述「LLM接続」）が使われ、未設定・失敗時はこのモックにフォールバックします。
+`OPENAI_API_KEY` が設定されていれば LLM（後述「LLM接続」）が使われ、未設定・失敗時はこのモックにフォールバックします。
 
 `npm test` で入力例、フォールバック、不正入力、メソッド制限を検証できます。
 
@@ -144,17 +144,17 @@ UI側は送信前のシーンと比較して「Brightness 20% → 10%」のよ�
 安全制限（要件14.3）として `light.brightness` は0〜100、`temperature` は18〜30℃にクランプします。
 `scene` がオブジェクトでない、`text` が文字列でない場合は400、POST以外は405です。
 
-判定処理は `lib/scene-adjuster.js` の `mockAdjustScene(scene, text)` に分離しています。`ANTHROPIC_API_KEY` があれば LLM が優先され、失敗時はこのモックにフォールバックします。
+判定処理は `lib/scene-adjuster.js` の `mockAdjustScene(scene, text)` に分離しています。`OPENAI_API_KEY` があれば LLM が優先され、失敗時はこのモックにフォールバックします。
 
 ## LLM接続（Issue #5）
 
 `lib/llm.js` が `POST /api/generate-scene` と `POST /api/adjust-scene` の本体です。
 
-- モデル: Claude Sonnet 5（`claude-sonnet-5`、`wrangler.toml` の `LLM_MODEL` で変更可）
-- 公式 SDK `@anthropic-ai/sdk` の `messages.parse()` + Structured Outputs（JSON Schema）でシーンJSONの形を強制
+- モデル: GPT-4.1 mini（`gpt-4.1-mini`、`wrangler.toml` の `LLM_MODEL` で変更可）
+- OpenAI Responses API の Structured Outputs（JSON Schema）でシーンJSONの形を強制
 - 出力は `normalizeScene` で安全範囲に矯正: `light.brightness` 0〜100、`temperature` 18〜30、`fan` は low/medium/high、`visual`/`sound` は素材が存在するキーのみ
 - タイムアウト: シーン生成 9秒、会話変更 3秒（要件14.2）。リトライなし
-- `ANTHROPIC_API_KEY` 未設定・API エラー・タイムアウト・refusal のときは既存モックにフォールバック。レスポンス本文の形は変わらない
+- `OPENAI_API_KEY` 未設定・API エラー・タイムアウト・不完全な応答のときは既存モックにフォールバック。レスポンス本文の形は変わらない
 - どちらが応答したかはレスポンスヘッダ `X-Scene-Source: llm | mock` で確認できる
 
 ### APIキーの設定
@@ -163,10 +163,10 @@ UI側は送信前のシーンと比較して「Brightness 20% → 10%」のよ�
 
 ```sh
 # 本番（Cloudflare Pages の secret）
-npx wrangler pages secret put ANTHROPIC_API_KEY --project-name 0913hackathon
+npx wrangler pages secret put OPENAI_API_KEY --project-name 0913hackathon
 
 # ローカル開発
-echo 'ANTHROPIC_API_KEY=sk-ant-...' > .dev.vars
+echo 'OPENAI_API_KEY=sk-...' > .dev.vars
 npm run dev
 ```
 
