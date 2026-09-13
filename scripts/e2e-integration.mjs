@@ -24,14 +24,23 @@ try {
   await solo.waitForSelector('#interviewView.is-active', { timeout: 15000 });
   await solo.click('button[data-option="cool"]');
   await solo.waitForSelector('#sceneView.is-active', { timeout: 20000 });
+  const soloTabPromise = soloCtx.waitForEvent('page');
   await solo.click('#startExperience');
-  await solo.waitForFunction(() => document.getElementById('pcVideo').src.includes('scene1-shonan-sunset'), null, { timeout: 10000 });
+  const soloTab = await soloTabPromise;
+  soloTab.on('pageerror', (e) => fail(`PC tab page error: ${e.message}`));
+  await soloTab.waitForFunction(() => document.getElementById('video').src.includes('scene1-shonan-sunset'), null, { timeout: 10000 });
   const soloStatus = (await solo.textContent('#outputStatus')).trim();
-  const soloAudio = await solo.evaluate(() => document.getElementById('pcAudio').src.split('/').pop());
-  log('solo PC: output =', soloStatus, '| video hidden =', await solo.isHidden('#pcVideo'), '| audio =', soloAudio, '| filter =', await solo.evaluate(() => document.getElementById('pcVideo').style.filter));
+  const soloAudio = await soloTab.evaluate(() => document.getElementById('audio').src.split('/').pop());
+  const tabFilterBefore = await soloTab.evaluate(() => document.getElementById('video').style.filter);
+  log('solo PC: output =', soloStatus, '| tab =', new URL(soloTab.url()).search, '| audio =', soloAudio, '| filter =', tabFilterBefore);
   if (!/PC/.test(soloStatus)) fail('default output should be PC when no phone is paired');
-  if (await solo.isHidden('#pcVideo')) fail('PC video should be visible in PC mode');
-  if (!/ocean-waves/.test(soloAudio)) fail('PC audio src not set');
+  if (!soloTab.url().includes('source=pc')) fail('PC playback should open display.html?source=pc in a new tab');
+  if (!/ocean-waves/.test(soloAudio)) fail('PC tab audio src not set');
+  // 会話変更が別タブへ即時に届く（BroadcastChannel）
+  await solo.fill('#chatInput', 'もう少し暗くして');
+  await solo.click('#sendButton');
+  await soloTab.waitForFunction((prev) => document.getElementById('video').style.filter !== prev, tabFilterBefore, { timeout: 15000 });
+  log('PC tab followed chat:', tabFilterBefore, '->', await soloTab.evaluate(() => document.getElementById('video').style.filter));
   await soloCtx.close();
 
   // 1. PC: デバイス設定画面でコード発行
@@ -71,12 +80,16 @@ try {
   const autoOutput = (await pc.textContent('#outputStatus')).trim();
   log('output (phone paired):', autoOutput);
   if (!/スマホ/.test(autoOutput)) fail('output should switch to the phone automatically when paired');
-  // 出力切替: PC にすると PC 側で映像が出る → スマホに戻す
+  // 出力切替: PC にすると再生タブが開く → スマホに戻すとタブは停止する
+  const pcTabPromise = pcCtx.waitForEvent('page');
   await pc.click('#outputPc');
-  await pc.waitForFunction(() => !document.getElementById('pcVideo').hidden && document.getElementById('pcVideo').src.includes('scene1'), null, { timeout: 5000 });
-  log('switched to PC: output =', (await pc.textContent('#outputStatus')).trim());
+  const pcTab = await pcTabPromise;
+  await pcTab.waitForFunction(() => document.getElementById('video').src.includes('scene1'), null, { timeout: 10000 });
+  log('switched to PC: output =', (await pc.textContent('#outputStatus')).trim(), '| tab playing =', !(await pcTab.evaluate(() => document.getElementById('video').paused)));
   await pc.click('#outputPhone');
-  if (!(await pc.isHidden('#pcVideo'))) fail('PC video should hide when output is the phone');
+  await pcTab.waitForFunction(() => !document.getElementById('video').getAttribute('src'), null, { timeout: 5000 })
+    .catch(() => fail('PC tab should stop when output moves to the phone'));
+  log('PC tab stopped after switching to phone');
 
   // 4. スマホ: 映像・音が切り替わる（ポーリング1.5秒）
   await phone.waitForFunction(() => document.getElementById('video').src.includes('scene1-shonan-sunset'), null, { timeout: 10000 });
