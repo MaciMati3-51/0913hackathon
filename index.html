@@ -126,6 +126,29 @@
       border: 0; background: none; color: var(--muted); padding: 8px 0;
       cursor: pointer; display: inline-flex; gap: 8px; align-items: center;
     }
+    .interview { padding: 46px 0 80px; }
+    .question-card {
+      max-width: 720px; margin: 30px auto 0; padding: 34px;
+      border: 1px solid var(--line); border-radius: var(--radius);
+      background: var(--glass); box-shadow: var(--shadow); backdrop-filter: blur(20px);
+    }
+    .progress { display: flex; gap: 6px; margin-bottom: 18px; }
+    .progress i { flex: 1; height: 4px; border-radius: 9px; background: rgba(255,255,255,.12); }
+    .progress i.done { background: linear-gradient(90deg, var(--aqua), var(--sun)); }
+    .question-card h2 { font-size: clamp(28px, 4vw, 40px); letter-spacing: -.04em; margin: 6px 0 24px; }
+    .options { display: grid; gap: 10px; }
+    .option {
+      display: grid; gap: 6px; text-align: left; padding: 18px 20px;
+      border: 1px solid var(--line); border-radius: 18px; background: rgba(255,255,255,.055);
+      cursor: pointer; transition: background .2s, border-color .2s, transform .2s;
+    }
+    .option:hover { background: rgba(255,255,255,.1); border-color: rgba(255,196,108,.45); transform: translateY(-2px); }
+    .option:disabled { cursor: wait; opacity: .6; transform: none; }
+    .option strong { font-size: 17px; }
+    .option small { color: var(--sun); font-size: 12px; letter-spacing: .06em; }
+    .interview-note { color: var(--muted); font-size: 13px; margin-top: 16px; }
+    .summary-line { color: var(--sun); font-size: 15px; margin: 0; }
+    .summary-line small { display: block; color: var(--muted); margin-top: 6px; }
     .scene-wrap { padding: 46px 0 80px; }
     .scene-head { display: flex; justify-content: space-between; gap: 24px; align-items: end; margin: 30px 0; }
     .scene-head h2 { font-size: clamp(34px, 5vw, 58px); letter-spacing: -.045em; margin: 7px 0 0; }
@@ -237,19 +260,19 @@
       <div class="hero">
         <div class="eyebrow">Bring a season home</div>
         <h1 id="homeTitle">どんな季節に<br><em>行きたいですか？</em></h1>
-        <p class="hero-copy">思い描いた時代、場所、季節をひとこと入力してください。AIが映像・音・光・空気を束ねて、家の中に新しい体験をつくります。</p>
+        <p class="hero-copy">どんな雰囲気の中にいたいか、ひとことで。AIが2〜3問だけ聞いて、映像・音・光・温度・風を決めます。</p>
         <form class="prompt-box" id="sceneForm">
-          <label class="sr-only" for="sceneInput">体験したい季節</label>
-          <input id="sceneInput" name="prompt" autocomplete="off" placeholder="例：2026年8月の夕方の湘南の海" required>
-          <button class="primary" id="generateButton" type="submit">季節をつくる <span aria-hidden="true">→</span></button>
+          <label class="sr-only" for="sceneInput">どんな雰囲気の中にいたい？</label>
+          <input id="sceneInput" name="prompt" autocomplete="off" placeholder="例：夕暮れをぼーっと眺めたい" required>
+          <button class="primary" id="generateButton" type="submit">AIと雰囲気を決める <span aria-hidden="true">→</span></button>
         </form>
         <div class="examples">
-          <p>おすすめの体験</p>
-          <div class="chip-row" aria-label="おすすめの体験">
-            <button class="chip" type="button">2020年の夏祭り</button>
-            <button class="chip" type="button">昭和の夏休み</button>
-            <button class="chip" type="button">湘南の夕暮れ</button>
-            <button class="chip" type="button">夏の花火大会</button>
+          <p>ワンタップで始める</p>
+          <div class="chip-row" aria-label="雰囲気の候補">
+            <button class="chip" type="button" data-chip="chip_quiet_beach">ひとりで静かに海を見たい</button>
+            <button class="chip" type="button" data-chip="chip_lively">友達と賑やかに</button>
+            <button class="chip" type="button" data-chip="chip_sunset">夕暮れをぼーっと眺めたい</button>
+            <button class="chip" type="button" data-chip="chip_night_breeze">夜風にあたりたい</button>
           </div>
         </div>
       </div>
@@ -257,6 +280,23 @@
         <div class="concept"><span>01 / IMAGINE</span><strong>行きたい季節を話す</strong><small>時代も場所も、曖昧な記憶のままで大丈夫。</small></div>
         <div class="concept"><span>02 / ORCHESTRATE</span><strong>AIが空間を設計</strong><small>映像・音・照明・温度・風・香りをひとつに。</small></div>
         <div class="concept"><span>03 / EXPERIENCE</span><strong>家ごと、その季節へ</strong><small>会話しながら、心地よい空気に調整できます。</small></div>
+      </div>
+    </main>
+  </section>
+
+  <section class="view" id="interviewView" aria-labelledby="questionTitle">
+    <header class="topbar shell">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span><span class="brand-label">季節文化メーカー</span></div>
+      <div class="status-pill"><span class="status-dot"></span><span id="interviewStep">質問 2 / 3</span></div>
+    </header>
+    <main class="interview shell">
+      <button class="back" id="interviewBack" type="button">← 最初からやり直す</button>
+      <div class="question-card">
+        <div class="progress" id="interviewProgress" aria-hidden="true"><i class="done"></i><i></i><i></i></div>
+        <div class="eyebrow">AI が聞いています</div>
+        <h2 id="questionTitle" tabindex="-1">空はどのくらいの時間？</h2>
+        <div class="options" id="interviewOptions" role="group" aria-label="選択肢"></div>
+        <p class="interview-note">選択肢の下の値が、そのまま家電に設定されます。</p>
       </div>
     </main>
   </section>
@@ -270,7 +310,7 @@
       <button class="back" id="backHome" type="button">← 別の季節を探す</button>
       <div class="scene-head">
         <div><div class="eyebrow">Your seasonal scene</div><h2 id="sceneTitle" tabindex="-1">体験プランができました</h2></div>
-        <p style="color:var(--muted);margin:0">AIが6つの環境をひとつの体験に調律しました。</p>
+        <p class="summary-line" id="sceneSummary">AIが6つの環境をひとつの体験に調律しました。</p>
       </div>
       <div class="scene-grid">
         <article class="visual-card">
@@ -322,7 +362,7 @@
 
   <script>
     const $ = (id) => document.getElementById(id);
-    const views = [$("homeView"), $("sceneView"), $("experienceView")];
+    const views = [$("homeView"), $("interviewView"), $("sceneView"), $("experienceView")];
     const fallbackScene = {
       location: "湘南", season: "夏", era: "2026年8月", time: "17:30", weather: "晴れ",
       visual: "夕暮れの湘南海岸", sound: "波音・海風・遠くの人の声",
@@ -356,11 +396,11 @@
     }
     function friendly(value) {
       const key = String(value).toLowerCase();
-      const labels = { spring: "春", summer: "夏", autumn: "秋", winter: "冬", morning: "朝", day: "昼", sunset: "夕暮れ", night: "夜", shonan_sunset: "夕暮れの湘南海岸", ocean_wave: "波音・海風", warm: "暖色", white: "白色", cool: "寒色", ocean: "潮風", forest: "森の香り", summer_grass: "夏草", festival: "屋台の香り", rain: "雨の匂い" };
+      const labels = { spring: "春", summer: "夏", autumn: "秋", winter: "冬", morning: "朝", day: "昼", sunset: "夕暮れ", night: "夜", shonan_sunset: "湘南の海岸", ocean_wave: "波の音", ocean_wave_breeze: "波の音・海風", warm: "暖色", white: "白色", cool: "寒色", ocean: "潮風", forest: "森の香り", summer_grass: "夏草", festival: "屋台の香り", rain: "雨の匂い" };
       return labels[key] || String(value).replaceAll("_", " ");
     }
     function renderScene() {
-      $("sceneLocation").textContent = scene.location.includes("湘南") ? `${scene.location}の夕暮れ` : scene.location;
+      $("sceneLocation").textContent = scene.location.includes("湘南") ? `${scene.location}の${friendly(scene.time)}` : scene.location;
       $("sceneEra").textContent = `${scene.era} · ${friendly(scene.time)}`;
       $("sceneWeather").textContent = `☀ ${friendly(scene.weather)}`;
       $("sceneSeason").textContent = `◷ ${friendly(scene.season)}`;
@@ -432,24 +472,87 @@
       } catch (error) { toast("スマホへの送信に失敗しました"); }
     }
 
+    // 雰囲気ヒアリング（docs/interview-flow.md）: Q1 は自由文 or チップ、Q2/Q3 は固定選択肢。state はクライアント保持
+    const AXIS_JA = { time: "時間帯", density: "人の気配", body: "体感" };
+    let interview = { turn: 1, slots: {} };
+    let lastPrompt = "";
+    function rememberedBody() { const value = localStorage.getItem("pref.body"); return value === "cool" || value === "mild" ? value : null; }
+    function renderQuestion(question, turn) {
+      $("questionTitle").textContent = question.text;
+      $("interviewStep").textContent = `質問 ${turn} / 3`;
+      [...$("interviewProgress").children].forEach((bar, index) => bar.classList.toggle("done", index < turn));
+      $("interviewOptions").replaceChildren(...question.options.map((option) => {
+        const button = document.createElement("button");
+        button.className = "option"; button.type = "button"; button.dataset.option = option.id;
+        const label = document.createElement("strong"); label.textContent = option.label;
+        const preview = document.createElement("small"); preview.textContent = option.previewText;
+        button.append(label, preview);
+        button.addEventListener("click", () => answerInterview(option.id));
+        return button;
+      }));
+    }
+    function showSummary(result) {
+      const decided = (result.defaults ?? []).map((axis) => AXIS_JA[axis]).filter(Boolean);
+      $("sceneSummary").replaceChildren(`「${result.summary}」でいい？`);
+      const note = document.createElement("small");
+      note.textContent = [
+        decided.length ? `${decided.join("・")}はAIが決めました` : "",
+        interview.bodyRemembered ? "体感は前回の答えを使いました" : "",
+        result.source === "llm" ? "シーン生成: AI" : "シーン生成: デモモード",
+      ].filter(Boolean).join(" · ");
+      $("sceneSummary").append(note);
+    }
+    async function handleInterview(result) {
+      if (!result.done) {
+        interview = { ...interview, ...result.state };
+        renderQuestion(result.question, result.state.turn);
+        showView($("interviewView")); $("questionTitle").focus?.();
+        return;
+      }
+      if (result.state?.slots?.body) localStorage.setItem("pref.body", result.state.slots.body);
+      scene = normalizeScene(result.scene, lastPrompt);
+      showSummary(result);
+      renderScene(); showView($("sceneView")); $("sceneTitle").focus?.();
+    }
+    async function startInterview(answer) {
+      lastPrompt = answer;
+      const body = rememberedBody();
+      interview = { turn: 1, slots: body ? { body } : {}, bodyRemembered: Boolean(body) };
+      $("generateButton").disabled = true; $("generateButton").textContent = "AIが聞き取り中…";
+      document.querySelectorAll(".chip").forEach((chip) => { chip.disabled = true; });
+      try {
+        await handleInterview(await postJSON("/api/interview", { state: { turn: 1, slots: interview.slots }, answer }));
+      } catch (error) {
+        // ヒアリングAPIが落ちていても、一発生成で体験は続けられる
+        try { scene = normalizeScene(await postJSON("/api/generate-scene", { text: answer }), answer); }
+        catch (fallbackError) { scene = normalizeScene({}, answer); }
+        $("sceneSummary").textContent = "ヒアリングを省略して、AIが体験プランを生成しました。";
+        renderScene(); showView($("sceneView"));
+      } finally {
+        $("generateButton").disabled = false; $("generateButton").innerHTML = "AIと雰囲気を決める <span aria-hidden=\"true\">→</span>";
+        document.querySelectorAll(".chip").forEach((chip) => { chip.disabled = false; });
+      }
+    }
+    async function answerInterview(optionId) {
+      const buttons = [...$("interviewOptions").children];
+      buttons.forEach((button) => { button.disabled = true; });
+      try {
+        await handleInterview(await postJSON("/api/interview", { state: { turn: interview.turn, slots: interview.slots }, answer: optionId }));
+      } catch (error) {
+        toast("うまく聞き取れませんでした。もう一度選んでください");
+        buttons.forEach((button) => { button.disabled = false; });
+      }
+    }
     document.querySelectorAll(".chip").forEach((chip) => chip.addEventListener("click", () => {
-      $("sceneInput").value = chip.textContent.trim(); $("sceneInput").focus();
+      $("sceneInput").value = chip.textContent.trim();
+      startInterview(chip.dataset.chip);
     }));
-    $("sceneForm").addEventListener("submit", async (event) => {
+    $("sceneForm").addEventListener("submit", (event) => {
       event.preventDefault();
       const prompt = $("sceneInput").value.trim(); if (!prompt) return;
-      $("generateButton").disabled = true; $("generateButton").textContent = "AIが空間を設計中…";
-      try {
-        const result = await postJSON("/api/generate-scene", { text: prompt });
-        scene = normalizeScene(result, prompt);
-      } catch (error) {
-        scene = normalizeScene({}, prompt);
-        toast("デモモードで体験プランを生成しました");
-      } finally {
-        $("generateButton").disabled = false; $("generateButton").innerHTML = "季節をつくる <span aria-hidden=\"true\">→</span>";
-      }
-      renderScene(); showView($("sceneView")); $("sceneTitle").focus?.();
+      startInterview(prompt);
     });
+    $("interviewBack").addEventListener("click", () => showView($("homeView")));
     $("backHome").addEventListener("click", () => showView($("homeView")));
     $("startExperience").addEventListener("click", () => {
       showView($("experienceView")); pushScene(); startedAt = Date.now(); clearInterval(timerId);
