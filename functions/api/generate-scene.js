@@ -1,6 +1,6 @@
-import { mockGenerateScene } from '../../lib/scene-generator.js';
+import { generateScene } from '../../lib/llm.js';
 
-export async function onRequest({ request }) {
+export async function onRequest({ request, env }) {
   const headers = { 'Cache-Control': 'no-store' };
   if (request.method !== 'POST') {
     return Response.json(
@@ -19,6 +19,6 @@ export async function onRequest({ request }) {
     return Response.json({ error: 'text must be a string.' }, { status: 400, headers });
   }
 
-  const scene = await mockGenerateScene(body.text);
-  return Response.json(scene, { headers });
+  const { scene, source } = await generateScene(body.text, env);
+  return Response.json(scene, { headers: { ...headers, 'X-Scene-Source': source } });
 }
