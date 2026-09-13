@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#152842">
+  <title>季節文化メーカー</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #fffaf0;
+      --muted: #c7d0de;
+      --navy: #101f36;
+      --navy-deep: #081322;
+      --line: rgba(255,255,255,.13);
+      --glass: rgba(11,25,43,.62);
+      --orange: #ff855f;
+      --sun: #ffc46c;
+      --aqua: #68c6c8;
+      --shadow: 0 22px 80px rgba(2,8,18,.38);
+      --radius: 28px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      min-height: 100vh;
+      color: var(--ink);
+      background:
+        radial-gradient(circle at 78% 4%, rgba(255,142,94,.24), transparent 32rem),
+        radial-gradient(circle at 13% 83%, rgba(54,144,163,.22), transparent 34rem),
+        var(--navy-deep);
+      font-family: Inter, "Noto Sans JP", "Hiragino Sans", system-ui, sans-serif;
+      letter-spacing: .02em;
+    }
+    button, input { font: inherit; }
+    button { color: inherit; }
+    button:focus-visible, input:focus-visible {
+      outline: 3px solid rgba(255,196,108,.82);
+      outline-offset: 3px;
+    }
+    .shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+    .topbar {
+      height: 78px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { display: flex; gap: 12px; align-items: center; font-weight: 780; }
+    .brand-mark {
+      width: 37px; height: 37px; border-radius: 50%;
+      display: grid; place-items: center;
+      background: linear-gradient(140deg, var(--sun), var(--orange));
+      box-shadow: 0 0 34px rgba(255,150,91,.35);
+      color: #142238;
+    }
+    .brand-mark svg { width: 21px; height: 21px; }
+    .eyebrow { color: var(--sun); text-transform: uppercase; font-size: 11px; letter-spacing: .18em; font-weight: 800; }
+    .status-pill {
+      display: flex; align-items: center; gap: 8px;
+      color: var(--muted); font-size: 12px;
+      border: 1px solid var(--line); border-radius: 999px; padding: 8px 12px;
+      background: rgba(255,255,255,.04);
+    }
+    .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #75d4ab; box-shadow: 0 0 12px #75d4ab; }
+
+    .view { display: none; }
+    .view.is-active { display: block; animation: rise .55s cubic-bezier(.2,.8,.2,1); }
+    @keyframes rise { from { opacity: 0; transform: translateY(14px); } }
+
+    .home { padding: 88px 0 72px; }
+    .hero { max-width: 850px; margin: 0 auto; text-align: center; }
+    .hero h1 {
+      font-size: clamp(42px, 7vw, 82px);
+      line-height: 1.07;
+      letter-spacing: -.055em;
+      margin: 16px 0 24px;
+      font-weight: 850;
+    }
+    .hero h1 em { color: var(--sun); font-style: normal; }
+    .hero-copy { color: var(--muted); max-width: 610px; margin: 0 auto 42px; line-height: 1.9; }
+    .prompt-box {
+      display: flex; gap: 10px; padding: 9px;
+      background: rgba(255,255,255,.93); border-radius: 22px;
+      box-shadow: var(--shadow), 0 0 0 1px rgba(255,255,255,.3);
+    }
+    .prompt-box input {
+      border: 0; outline: 0; flex: 1; min-width: 0;
+      color: #19283b; background: transparent; padding: 12px 18px;
+    }
+    .prompt-box input::placeholder { color: #778393; }
+    .primary {
+      border: 0; border-radius: 15px; padding: 16px 23px;
+      background: linear-gradient(135deg, #ffb263, #ff745d);
+      color: #192237; font-weight: 850; cursor: pointer;
+      box-shadow: 0 10px 30px rgba(255,116,93,.23);
+      transition: transform .2s ease, filter .2s ease;
+    }
+    .primary:hover { transform: translateY(-2px); filter: brightness(1.05); }
+    .primary:disabled { cursor: wait; opacity: .7; transform: none; }
+    .examples { margin-top: 34px; }
+    .examples p { color: #8998aa; font-size: 12px; letter-spacing: .15em; text-transform: uppercase; }
+    .chip-row { display: flex; justify-content: center; flex-wrap: wrap; gap: 10px; }
+    .chip {
+      border: 1px solid var(--line); border-radius: 999px; padding: 11px 15px;
+      color: #dce4ed; background: rgba(255,255,255,.05); cursor: pointer;
+      transition: background .2s, border-color .2s, transform .2s;
+    }
+    .chip:hover { background: rgba(255,255,255,.1); border-color: rgba(255,196,108,.45); transform: translateY(-2px); }
+    .concept-strip {
+      margin-top: 88px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 1px;
+      background: var(--line); border: 1px solid var(--line); border-radius: 22px; overflow: hidden;
+    }
+    .concept { padding: 26px; background: rgba(13,29,49,.88); text-align: left; }
+    .concept span { color: var(--orange); font-size: 11px; font-weight: 800; }
+    .concept strong { display: block; margin-top: 10px; font-size: 16px; }
+    .concept small { display: block; color: var(--muted); margin-top: 7px; line-height: 1.6; }
+
+    .back {
+      border: 0; background: none; color: var(--muted); padding: 8px 0;
+      cursor: pointer; display: inline-flex; gap: 8px; align-items: center;
+    }
+    .scene-wrap { padding: 46px 0 80px; }
+    .scene-head { display: flex; justify-content: space-between; gap: 24px; align-items: end; margin: 30px 0; }
+    .scene-head h2 { font-size: clamp(34px, 5vw, 58px); letter-spacing: -.045em; margin: 7px 0 0; }
+    .scene-grid { display: grid; grid-template-columns: 1.15fr .85fr; gap: 22px; }
+    .visual-card, .detail-card {
+      border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden;
+      background: var(--glass); box-shadow: var(--shadow); backdrop-filter: blur(20px);
+    }
+    .visual-card { min-height: 520px; position: relative; display: flex; align-items: end; }
+    .scene-art {
+      position: absolute; inset: 0; overflow: hidden;
+      background:
+        linear-gradient(to bottom, transparent 45%, rgba(8,19,34,.22) 55%, rgba(8,19,34,.88)),
+        linear-gradient(160deg, #4c6682 0%, #dc8a76 43%, #f6b86b 57%, #245c71 58%, #0f304b 100%);
+    }
+    .sun { position: absolute; width: 130px; height: 130px; border-radius: 50%; left: 63%; top: 25%; background: #ffe1a0; box-shadow: 0 0 80px #ffc173; }
+    .horizon { position: absolute; left: -10%; right: -10%; top: 58%; height: 1px; background: rgba(255,232,185,.6); }
+    .wave { position: absolute; left: -10%; width: 120%; height: 9%; border-top: 1px solid rgba(255,255,255,.2); border-radius: 50%; animation: wave 5s ease-in-out infinite alternate; }
+    .wave.one { top: 66%; } .wave.two { top: 72%; animation-delay: -2s; } .wave.three { top: 81%; animation-delay: -3.5s; }
+    @keyframes wave { to { transform: translate(2%, 8px) scaleY(.75); } }
+    .visual-info { z-index: 1; position: relative; padding: 36px; width: 100%; }
+    .location { font-size: clamp(28px, 4vw, 44px); font-weight: 800; letter-spacing: -.03em; }
+    .meta { display: flex; flex-wrap: wrap; gap: 15px; color: var(--muted); margin-top: 9px; }
+    .detail-card { padding: 30px; }
+    .detail-card h3 { margin: 0 0 22px; font-size: 17px; }
+    .spec-list { display: grid; gap: 5px; }
+    .spec {
+      display: grid; grid-template-columns: 42px 1fr; gap: 13px; align-items: center;
+      padding: 14px; border-radius: 15px; background: rgba(255,255,255,.045);
+    }
+    .spec-icon { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: rgba(255,196,108,.11); }
+    .spec small { display: block; color: #8e9aab; margin-bottom: 3px; }
+    .spec strong { font-size: 14px; }
+    .start { width: 100%; margin-top: 18px; padding-block: 18px; }
+
+    .experience { min-height: 100vh; min-height: 100dvh; position: relative; overflow: hidden; }
+    .experience-bg { position: fixed; inset: 0; z-index: -2; background: linear-gradient(150deg, #4e627e 0, #d17e72 38%, #f1af67 52%, #1b5269 53%, #081b30 100%); }
+    .experience-bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(to bottom, rgba(7,16,29,.08), rgba(7,16,29,.86)); }
+    .experience .topbar { border-bottom-color: rgba(255,255,255,.18); }
+    .live { display: flex; align-items: center; gap: 8px; color: #ffc9a4; font-size: 12px; letter-spacing: .14em; text-transform: uppercase; }
+    .live i { width: 7px; height: 7px; border-radius: 50%; background: #ff7d62; animation: pulse 1.4s infinite; }
+    @keyframes pulse { 50% { box-shadow: 0 0 0 7px rgba(255,125,98,0); } 0%,100% { box-shadow: 0 0 0 0 rgba(255,125,98,.45); } }
+    .exp-main { padding: 34px 0 52px; min-height: calc(100vh - 78px); display: flex; flex-direction: column; justify-content: end; }
+    .exp-title { margin: auto 0 24px; text-shadow: 0 4px 24px rgba(3,10,20,.45); }
+    .exp-title h2 { font-size: clamp(40px, 7vw, 76px); letter-spacing: -.06em; margin: 7px 0; }
+    .exp-title p { color: rgba(255,255,255,.76); }
+    .dashboard { display: grid; grid-template-columns: 1fr 1.4fr; gap: 17px; align-items: stretch; }
+    .devices, .chat-panel { border: 1px solid rgba(255,255,255,.17); border-radius: 24px; background: rgba(7,18,32,.71); backdrop-filter: blur(25px); box-shadow: var(--shadow); }
+    .devices { padding: 19px; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .device { padding: 15px; border-radius: 16px; background: rgba(255,255,255,.055); transition: background .3s, transform .3s; }
+    .device.changed { background: rgba(255,196,108,.17); transform: translateY(-3px); }
+    .device-top { display: flex; justify-content: space-between; color: var(--muted); font-size: 12px; }
+    .device-value { font-size: 25px; font-weight: 820; margin-top: 10px; letter-spacing: -.03em; overflow-wrap: anywhere; }
+    .bar { height: 4px; background: rgba(255,255,255,.1); border-radius: 9px; margin-top: 12px; overflow: hidden; }
+    .bar i { display: block; height: 100%; width: 20%; background: linear-gradient(90deg, var(--aqua), var(--sun)); transition: width .6s cubic-bezier(.2,.8,.2,1); }
+    .chat-panel { padding: 20px; display: flex; flex-direction: column; }
+    .chat-log { height: 125px; overflow: auto; display: flex; flex-direction: column; gap: 8px; padding: 0 4px 13px; }
+    .message { max-width: 82%; padding: 9px 12px; border-radius: 13px; font-size: 13px; line-height: 1.5; }
+    .message.ai { background: rgba(255,255,255,.07); color: #dbe2ea; }
+    .message.user { align-self: end; background: rgba(255,133,95,.18); color: #fff3e9; }
+    .chat-form { display: flex; gap: 8px; margin-top: auto; }
+    .chat-form input { flex: 1; min-width: 0; background: rgba(255,255,255,.94); color: #17263a; border: 0; border-radius: 14px; padding: 13px 15px; }
+    .send { padding: 12px 17px; border-radius: 14px; }
+    .end { border: 1px solid rgba(255,255,255,.2); background: rgba(8,20,34,.38); border-radius: 12px; padding: 10px 14px; cursor: pointer; }
+    .toast { position: fixed; top: 92px; left: 50%; transform: translate(-50%, -12px); z-index: 20; opacity: 0; pointer-events: none; background: #fff6e7; color: #18263a; padding: 12px 17px; border-radius: 13px; box-shadow: var(--shadow); transition: .25s; font-weight: 700; font-size: 13px; }
+    .toast.show { opacity: 1; transform: translate(-50%, 0); }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+
+    @media (max-width: 820px) {
+      .shell { width: min(100% - 28px, 680px); }
+      .home { padding-top: 58px; }
+      .prompt-box { flex-direction: column; border-radius: 20px; }
+      .prompt-box input { min-height: 54px; }
+      .concept-strip { grid-template-columns: 1fr; margin-top: 60px; }
+      .scene-head { display: block; }
+      .scene-grid, .dashboard { grid-template-columns: 1fr; }
+      .visual-card { min-height: 400px; }
+      .exp-main { padding-top: 20px; }
+      .exp-title { margin-top: 80px; }
+      .chat-log { height: 145px; }
+    }
+    @media (max-width: 480px) {
+      .topbar { height: 66px; }
+      .brand-label { font-size: 13px; }
+      .status-pill { display: none; }
+      .hero h1 { font-size: 43px; }
+      .hero-copy { font-size: 14px; }
+      .scene-wrap { padding-top: 24px; }
+      .detail-card, .visual-info { padding: 22px; }
+      .devices { grid-template-columns: 1fr 1fr; padding: 12px; }
+      .device { padding: 12px; }
+      .device-value { font-size: 20px; }
+      .chat-form { flex-direction: column; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; scroll-behavior: auto !important; }
+    }
+  </style>
+</head>
+<body>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <section class="view is-active" id="homeView" aria-labelledby="homeTitle">
+    <header class="topbar shell">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/></svg></span><span class="brand-label">季節文化メーカー</span></div>
+      <div class="status-pill"><span class="status-dot"></span>Season Agent ready</div>
+    </header>
+    <main class="home shell">
+      <div class="hero">
+        <div class="eyebrow">Bring a season home</div>
+        <h1 id="homeTitle">どんな季節に<br><em>行きたいですか？</em></h1>
+        <p class="hero-copy">思い描いた時代、場所、季節をひとこと入力してください。AIが映像・音・光・空気を束ねて、家の中に新しい体験をつくります。</p>
+        <form class="prompt-box" id="sceneForm">
+          <label class="sr-only" for="sceneInput">体験したい季節</label>
+          <input id="sceneInput" name="prompt" autocomplete="off" placeholder="例：2026年8月の夕方の湘南の海" required>
+          <button class="primary" id="generateButton" type="submit">季節をつくる <span aria-hidden="true">→</span></button>
+        </form>
+        <div class="examples">
+          <p>おすすめの体験</p>
+          <div class="chip-row" aria-label="おすすめの体験">
+            <button class="chip" type="button">2020年の夏祭り</button>
+            <button class="chip" type="button">昭和の夏休み</button>
+            <button class="chip" type="button">湘南の夕暮れ</button>
+            <button class="chip" type="button">夏の花火大会</button>
+          </div>
+        </div>
+      </div>
+      <div class="concept-strip" aria-label="体験の特徴">
+        <div class="concept"><span>01 / IMAGINE</span><strong>行きたい季節を話す</strong><small>時代も場所も、曖昧な記憶のままで大丈夫。</small></div>
+        <div class="concept"><span>02 / ORCHESTRATE</span><strong>AIが空間を設計</strong><small>映像・音・照明・温度・風・香りをひとつに。</small></div>
+        <div class="concept"><span>03 / EXPERIENCE</span><strong>家ごと、その季節へ</strong><small>会話しながら、心地よい空気に調整できます。</small></div>
+      </div>
+    </main>
+  </section>
+
+  <section class="view" id="sceneView" aria-labelledby="sceneTitle">
+    <header class="topbar shell">
+      <div class="brand"><span class="brand-mark" aria-hidden="true">✦</span><span class="brand-label">季節文化メーカー</span></div>
+      <div class="status-pill"><span class="status-dot"></span>Scene generated</div>
+    </header>
+    <main class="scene-wrap shell">
+      <button class="back" id="backHome" type="button">← 別の季節を探す</button>
+      <div class="scene-head">
+        <div><div class="eyebrow">Your seasonal scene</div><h2 id="sceneTitle" tabindex="-1">体験プランができました</h2></div>
+        <p style="color:var(--muted);margin:0">AIが6つの環境をひとつの体験に調律しました。</p>
+      </div>
+      <div class="scene-grid">
+        <article class="visual-card">
+          <div class="scene-art" aria-hidden="true"><div class="sun"></div><div class="horizon"></div><div class="wave one"></div><div class="wave two"></div><div class="wave three"></div></div>
+          <div class="visual-info"><div class="eyebrow" id="sceneEra">August 2026 · 17:30</div><div class="location" id="sceneLocation">湘南の夕暮れ</div><div class="meta"><span id="sceneWeather">☀ 晴れ</span><span id="sceneSeason">◷ 夏</span></div></div>
+        </article>
+        <aside class="detail-card">
+          <h3>空間の設計</h3>
+          <div class="spec-list">
+            <div class="spec"><div class="spec-icon">▣</div><div><small>映像</small><strong id="visualSpec">夕暮れの湘南海岸</strong></div></div>
+            <div class="spec"><div class="spec-icon">♫</div><div><small>音</small><strong id="soundSpec">波音・海風・遠くの人の声</strong></div></div>
+            <div class="spec"><div class="spec-icon">☀</div><div><small>照明</small><strong id="lightSpec">暖色・明るさ 20%</strong></div></div>
+            <div class="spec"><div class="spec-icon">❄</div><div><small>室温</small><strong id="temperatureSpec">26℃</strong></div></div>
+            <div class="spec"><div class="spec-icon">≋</div><div><small>風</small><strong id="windSpec">弱い海風</strong></div></div>
+            <div class="spec"><div class="spec-icon">◌</div><div><small>香り</small><strong id="aromaSpec">潮風</strong></div></div>
+          </div>
+          <button class="primary start" id="startExperience" type="button">この季節を体験する <span aria-hidden="true">→</span></button>
+        </aside>
+      </div>
+    </main>
+  </section>
+
+  <section class="view experience" id="experienceView" aria-labelledby="experienceTitle">
+    <div class="experience-bg" aria-hidden="true"></div>
+    <header class="topbar shell">
+      <div class="live"><i></i> Experience live · <span id="elapsed">00:00</span></div>
+      <button class="end" id="endExperience" type="button">体験を終了</button>
+    </header>
+    <main class="exp-main shell">
+      <div class="exp-title"><div class="eyebrow">Now experiencing</div><h2 id="experienceTitle">湘南の夕暮れ</h2><p id="experienceSubtitle">波と海風に包まれる、夏の17:30。</p></div>
+      <div class="dashboard">
+        <section class="devices" aria-label="仮想スマート家電">
+          <div class="device" id="lightDevice"><div class="device-top"><span>💡 照明</span><span>ON</span></div><div class="device-value" id="lightValue">20%</div><div class="bar"><i id="lightBar"></i></div></div>
+          <div class="device" id="tempDevice"><div class="device-top"><span>❄ エアコン</span><span>AUTO</span></div><div class="device-value" id="tempValue">26℃</div><div class="bar"><i id="tempBar" style="width:48%"></i></div></div>
+          <div class="device" id="fanDevice"><div class="device-top"><span>≋ 扇風機</span><span>ON</span></div><div class="device-value" id="fanValue">LOW</div><div class="bar"><i id="fanBar" style="width:30%"></i></div></div>
+          <div class="device" id="aromaDevice"><div class="device-top"><span>◌ 香り</span><span>ON</span></div><div class="device-value" id="aromaValue">OCEAN</div><div class="bar"><i style="width:65%"></i></div></div>
+        </section>
+        <section class="chat-panel" aria-label="AIチャット">
+          <div class="chat-log" id="chatLog" aria-live="polite"><div class="message ai">湘南の夕暮れを再現しました。光や温度、風を会話で調整できます。</div></div>
+          <form class="chat-form" id="chatForm">
+            <label class="sr-only" for="chatInput">空間の調整を依頼</label>
+            <input id="chatInput" placeholder="例：もう少し暗くして" autocomplete="off" required>
+            <button class="primary send" id="sendButton" type="submit">送る</button>
+          </form>
+        </section>
+      </div>
+    </main>
+  </section>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+    const views = [$("homeView"), $("sceneView"), $("experienceView")];
+    const fallbackScene = {
+      location: "湘南", season: "夏", era: "2026年8月", time: "17:30", weather: "晴れ",
+      visual: "夕暮れの湘南海岸", sound: "波音・海風・遠くの人の声",
+      light: { brightness: 20, color: "暖色" }, temperature: 26, fan: "low", aroma: "ocean"
+    };
+    let scene = structuredClone(fallbackScene);
+    let timerId = null;
+    let startedAt = 0;
+
+    function showView(view) {
+      views.forEach((item) => item.classList.toggle("is-active", item === view));
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+    function pick(value, fallback) { return value ?? fallback; }
+    function normalizeScene(data = {}, prompt = "") {
+      const source = data.scene || data.data || data;
+      const light = source.light || source.lighting || {};
+      return {
+        location: pick(source.location, prompt.includes("祭り") ? "夏祭り" : prompt.includes("昭和") ? "昭和の夏休み" : fallbackScene.location),
+        season: pick(source.season, fallbackScene.season), era: pick(source.era, prompt.match(/\d{4}年(?:\d+月)?/)?.[0] || fallbackScene.era),
+        time: pick(source.time, fallbackScene.time), weather: pick(source.weather, fallbackScene.weather),
+        visual: pick(source.visual, prompt.includes("祭り") ? "提灯が灯る夜の夏祭り" : prompt.includes("花火") ? "夜空に広がる夏の花火" : fallbackScene.visual),
+        sound: pick(source.sound, prompt.includes("祭り") ? "祭囃子・セミ・人々の声" : prompt.includes("花火") ? "虫の声・花火の響き" : fallbackScene.sound),
+        light: { brightness: Number(pick(light.brightness, source.brightness ?? fallbackScene.light.brightness)), color: pick(light.color, fallbackScene.light.color) },
+        temperature: Number(pick(source.temperature, fallbackScene.temperature)), fan: pick(source.fan ?? source.wind, fallbackScene.fan), aroma: pick(source.aroma, fallbackScene.aroma)
+      };
+    }
+    function labelFan(value) {
+      const key = String(value).toLowerCase();
+      return ({ low: "LOW", weak: "LOW", 弱風: "LOW", medium: "MID", mid: "MID", 中: "MID", high: "HIGH", strong: "HIGH", 強風: "HIGH" })[key] || String(value).toUpperCase();
+    }
+    function friendly(value) {
+      const key = String(value).toLowerCase();
+      const labels = { summer: "夏", sunset: "夕暮れ", shonan_sunset: "夕暮れの湘南海岸", ocean_wave: "波音・海風", warm: "暖色", ocean: "潮風" };
+      return labels[key] || String(value).replaceAll("_", " ");
+    }
+    function renderScene() {
+      $("sceneLocation").textContent = scene.location.includes("湘南") ? `${scene.location}の夕暮れ` : scene.location;
+      $("sceneEra").textContent = `${scene.era} · ${scene.time}`;
+      $("sceneWeather").textContent = `☀ ${friendly(scene.weather)}`;
+      $("sceneSeason").textContent = `◷ ${friendly(scene.season)}`;
+      $("visualSpec").textContent = friendly(scene.visual);
+      $("soundSpec").textContent = friendly(scene.sound);
+      $("lightSpec").textContent = `${friendly(scene.light.color)}・明るさ ${scene.light.brightness}%`;
+      $("temperatureSpec").textContent = `${scene.temperature}℃`;
+      $("windSpec").textContent = labelFan(scene.fan) === "LOW" ? "弱い海風" : `${labelFan(scene.fan)} の風`;
+      $("aromaSpec").textContent = friendly(scene.aroma);
+      $("experienceTitle").textContent = $("sceneLocation").textContent;
+      $("experienceSubtitle").textContent = `${friendly(scene.sound)}に包まれる、${friendly(scene.season)}の${scene.time}。`;
+      renderDevices();
+    }
+    function renderDevices(changed = []) {
+      $("lightValue").textContent = `${scene.light.brightness}%`;
+      $("lightBar").style.width = `${Math.max(0, Math.min(100, scene.light.brightness))}%`;
+      $("tempValue").textContent = `${scene.temperature}℃`;
+      $("tempBar").style.width = `${Math.max(8, Math.min(100, (scene.temperature - 16) * 7))}%`;
+      $("fanValue").textContent = labelFan(scene.fan);
+      $("fanBar").style.width = ({ LOW: "30%", MID: "62%", HIGH: "100%" })[labelFan(scene.fan)] || "45%";
+      $("aromaValue").textContent = friendly(scene.aroma).toUpperCase();
+      changed.forEach((id) => {
+        const el = $(id); el.classList.remove("changed"); void el.offsetWidth; el.classList.add("changed");
+        setTimeout(() => el.classList.remove("changed"), 900);
+      });
+    }
+    function toast(text) { $("toast").textContent = text; $("toast").classList.add("show"); setTimeout(() => $("toast").classList.remove("show"), 2600); }
+    async function postJSON(url, body) {
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 8000);
+      try {
+        const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body), signal: controller.signal });
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return await response.json();
+      } finally { clearTimeout(timeout); }
+    }
+
+    document.querySelectorAll(".chip").forEach((chip) => chip.addEventListener("click", () => {
+      $("sceneInput").value = chip.textContent.trim(); $("sceneInput").focus();
+    }));
+    $("sceneForm").addEventListener("submit", async (event) => {
+      event.preventDefault();
+      const prompt = $("sceneInput").value.trim(); if (!prompt) return;
+      $("generateButton").disabled = true; $("generateButton").textContent = "AIが空間を設計中…";
+      try {
+        const result = await postJSON("/api/generate-scene", { text: prompt });
+        scene = normalizeScene(result, prompt);
+      } catch (error) {
+        scene = normalizeScene({}, prompt);
+        toast("デモモードで体験プランを生成しました");
+      } finally {
+        $("generateButton").disabled = false; $("generateButton").innerHTML = "季節をつくる <span aria-hidden=\"true\">→</span>";
+      }
+      renderScene(); showView($("sceneView")); $("sceneTitle").focus?.();
+    });
+    $("backHome").addEventListener("click", () => showView($("homeView")));
+    $("startExperience").addEventListener("click", () => {
+      showView($("experienceView")); startedAt = Date.now(); clearInterval(timerId);
+      timerId = setInterval(() => { const sec = Math.floor((Date.now() - startedAt) / 1000); $("elapsed").textContent = `${String(Math.floor(sec / 60)).padStart(2,"0")}:${String(sec % 60).padStart(2,"0")}`; }, 1000);
+    });
+    $("endExperience").addEventListener("click", () => { clearInterval(timerId); $("elapsed").textContent = "00:00"; showView($("homeView")); toast("季節の体験を終了しました"); });
+    $("chatForm").addEventListener("submit", async (event) => {
+      event.preventDefault(); const message = $("chatInput").value.trim(); if (!message) return;
+      const userMessage = document.createElement("div"); userMessage.className = "message user"; userMessage.textContent = message; $("chatLog").append(userMessage); $("chatInput").value = "";
+      $("sendButton").disabled = true;
+      let changed = []; let reply = "空間を調整しました。";
+      try {
+        const result = await postJSON("/api/adjust-scene", { text: message, scene });
+        const next = normalizeScene(result, "");
+        if (next.light.brightness !== scene.light.brightness) changed.push("lightDevice");
+        if (next.temperature !== scene.temperature) changed.push("tempDevice");
+        if (next.fan !== scene.fan) changed.push("fanDevice");
+        if (next.aroma !== scene.aroma) changed.push("aromaDevice");
+        scene = next; reply = result.message || result.reply || reply;
+      } catch (error) {
+        if (/暗|明るさ.*下|照明.*下/.test(message)) { scene.light.brightness = Math.max(0, scene.light.brightness - 10); changed.push("lightDevice"); reply = `照明を ${scene.light.brightness}% に落としました。`; }
+        else if (/明るく/.test(message)) { scene.light.brightness = Math.min(100, scene.light.brightness + 10); changed.push("lightDevice"); reply = `照明を ${scene.light.brightness}% に上げました。`; }
+        else if (/暑|涼しく|温度.*下/.test(message)) { scene.temperature = scene.temperature - 2; changed.push("tempDevice"); reply = `エアコンを ${scene.temperature}℃ にしました。`; }
+        else if (/寒|暖か|温度.*上/.test(message)) { scene.temperature = scene.temperature + 2; changed.push("tempDevice"); reply = `エアコンを ${scene.temperature}℃ にしました。`; }
+        else if (/風.*強/.test(message)) { scene.fan = scene.fan === "low" ? "medium" : "high"; changed.push("fanDevice"); reply = "海風を一段階強くしました。"; }
+        else if (/風.*弱/.test(message)) { scene.fan = scene.fan === "high" ? "medium" : "low"; changed.push("fanDevice"); reply = "海風を一段階やさしくしました。"; }
+        else { reply = "設定は変更していません。光・温度・風の調整を頼めます。"; }
+      }
+      renderScene(); renderDevices(changed);
+      const aiMessage = document.createElement("div"); aiMessage.className = "message ai"; aiMessage.textContent = reply; $("chatLog").append(aiMessage); $("chatLog").scrollTop = $("chatLog").scrollHeight; $("sendButton").disabled = false; $("chatInput").focus();
+    });
+    renderScene();
+  </script>
+</body>
+</html>

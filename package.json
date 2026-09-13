@@ -1,0 +1,17 @@
+{
+  "name": "0913hackathon",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "npm run build && wrangler pages dev dist --kv APP_KV",
+    "check": "npm run build && wrangler pages functions build functions --outdir .check",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=22"
+  },
+  "devDependencies": {
+    "wrangler": "^4.0.0"
+  }
+}
