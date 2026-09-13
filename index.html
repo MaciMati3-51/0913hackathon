@@ -66,6 +66,9 @@
       background: rgba(255,255,255,.04);
     }
     .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #75d4ab; box-shadow: 0 0 12px #75d4ab; }
+    a.status-pill { text-decoration: none; }
+    a.status-pill:hover { border-color: rgba(255,196,108,.45); }
+    .status-dot.off { background: #ff9a6b; box-shadow: 0 0 12px #ff9a6b; }
 
     .view { display: none; }
     .view.is-active { display: block; animation: rise .55s cubic-bezier(.2,.8,.2,1); }
@@ -228,7 +231,7 @@
   <section class="view is-active" id="homeView" aria-labelledby="homeTitle">
     <header class="topbar shell">
       <div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/></svg></span><span class="brand-label">季節文化メーカー</span></div>
-      <div class="status-pill"><span class="status-dot"></span>Season Agent ready</div>
+      <a class="status-pill" id="pairStatus" href="/pair.html"><span class="status-dot off" id="pairDot"></span><span id="pairStatusText">📱 スマホ未接続 · 出力デバイスを設定</span></a>
     </header>
     <main class="home shell">
       <div class="hero">
@@ -293,7 +296,7 @@
   <section class="view experience" id="experienceView" aria-labelledby="experienceTitle">
     <div class="experience-bg" aria-hidden="true"></div>
     <header class="topbar shell">
-      <div class="live"><i></i> Experience live · <span id="elapsed">00:00</span></div>
+      <div class="live"><i></i> Experience live · <span id="elapsed">00:00</span> · <span id="outputStatus">📱 スマホ未接続</span></div>
       <button class="end" id="endExperience" type="button">体験を終了</button>
     </header>
     <main class="exp-main shell">
@@ -353,12 +356,12 @@
     }
     function friendly(value) {
       const key = String(value).toLowerCase();
-      const labels = { summer: "夏", sunset: "夕暮れ", shonan_sunset: "夕暮れの湘南海岸", ocean_wave: "波音・海風", warm: "暖色", ocean: "潮風" };
+      const labels = { spring: "春", summer: "夏", autumn: "秋", winter: "冬", morning: "朝", day: "昼", sunset: "夕暮れ", night: "夜", shonan_sunset: "夕暮れの湘南海岸", ocean_wave: "波音・海風", warm: "暖色", white: "白色", cool: "寒色", ocean: "潮風", forest: "森の香り", summer_grass: "夏草", festival: "屋台の香り", rain: "雨の匂い" };
       return labels[key] || String(value).replaceAll("_", " ");
     }
     function renderScene() {
       $("sceneLocation").textContent = scene.location.includes("湘南") ? `${scene.location}の夕暮れ` : scene.location;
-      $("sceneEra").textContent = `${scene.era} · ${scene.time}`;
+      $("sceneEra").textContent = `${scene.era} · ${friendly(scene.time)}`;
       $("sceneWeather").textContent = `☀ ${friendly(scene.weather)}`;
       $("sceneSeason").textContent = `◷ ${friendly(scene.season)}`;
       $("visualSpec").textContent = friendly(scene.visual);
@@ -368,7 +371,7 @@
       $("windSpec").textContent = labelFan(scene.fan) === "LOW" ? "弱い海風" : `${labelFan(scene.fan)} の風`;
       $("aromaSpec").textContent = friendly(scene.aroma);
       $("experienceTitle").textContent = $("sceneLocation").textContent;
-      $("experienceSubtitle").textContent = `${friendly(scene.sound)}に包まれる、${friendly(scene.season)}の${scene.time}。`;
+      $("experienceSubtitle").textContent = `${friendly(scene.sound)}に包まれる、${friendly(scene.season)}の${friendly(scene.time)}。`;
       renderDevices();
     }
     function renderDevices(changed = []) {
@@ -395,6 +398,40 @@
       } finally { clearTimeout(timeout); }
     }
 
+    // pair.html が発行したコード宛にシーンを送ると、display.html（スマホ）がポーリングで拾う
+    let pairingCode = localStorage.getItem("pairingCode");
+    const hasPairing = () => /^\d{4}$/.test(pairingCode ?? "");
+    function setPairStatus(connected, text) {
+      $("pairStatusText").textContent = text;
+      $("pairDot").classList.toggle("off", !connected);
+      $("outputStatus").textContent = connected ? "📱 スマホに出力中" : "📱 スマホ未接続";
+    }
+    function applyPairState(data) {
+      if (data.connected) setPairStatus(true, `📱 スマホ接続済み · コード ${pairingCode}`);
+      else setPairStatus(false, `📱 コード ${pairingCode} · スマホの接続待ち`);
+    }
+    function forgetPairing() {
+      localStorage.removeItem("pairingCode"); pairingCode = null;
+      setPairStatus(false, "📱 コード期限切れ · 出力デバイスを再設定");
+    }
+    async function refreshPairStatus() {
+      if (!hasPairing()) return;
+      try {
+        const response = await fetch(`/api/scene/${pairingCode}`, { cache: "no-store" });
+        if (response.status === 404) return forgetPairing();
+        if (response.ok) applyPairState(await response.json());
+      } catch (error) { /* 次回の更新で再試行 */ }
+    }
+    async function pushScene() {
+      if (!hasPairing()) return;
+      try {
+        const response = await fetch(`/api/scene/${pairingCode}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(scene) });
+        if (response.status === 404) return forgetPairing();
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        applyPairState(await response.json());
+      } catch (error) { toast("スマホへの送信に失敗しました"); }
+    }
+
     document.querySelectorAll(".chip").forEach((chip) => chip.addEventListener("click", () => {
       $("sceneInput").value = chip.textContent.trim(); $("sceneInput").focus();
     }));
@@ -415,7 +452,7 @@
     });
     $("backHome").addEventListener("click", () => showView($("homeView")));
     $("startExperience").addEventListener("click", () => {
-      showView($("experienceView")); startedAt = Date.now(); clearInterval(timerId);
+      showView($("experienceView")); pushScene(); startedAt = Date.now(); clearInterval(timerId);
       timerId = setInterval(() => { const sec = Math.floor((Date.now() - startedAt) / 1000); $("elapsed").textContent = `${String(Math.floor(sec / 60)).padStart(2,"0")}:${String(sec % 60).padStart(2,"0")}`; }, 1000);
     });
     $("endExperience").addEventListener("click", () => { clearInterval(timerId); $("elapsed").textContent = "00:00"; showView($("homeView")); toast("季節の体験を終了しました"); });
@@ -441,10 +478,11 @@
         else if (/風.*弱/.test(message)) { scene.fan = scene.fan === "high" ? "medium" : "low"; changed.push("fanDevice"); reply = "海風を一段階やさしくしました。"; }
         else { reply = "設定は変更していません。光・温度・風の調整を頼めます。"; }
       }
-      renderScene(); renderDevices(changed);
+      renderScene(); renderDevices(changed); pushScene();
       const aiMessage = document.createElement("div"); aiMessage.className = "message ai"; aiMessage.textContent = reply; $("chatLog").append(aiMessage); $("chatLog").scrollTop = $("chatLog").scrollHeight; $("sendButton").disabled = false; $("chatInput").focus();
     });
     renderScene();
+    refreshPairStatus(); setInterval(refreshPairStatus, 3000);
   </script>
 </body>
 </html>
