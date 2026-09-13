@@ -291,8 +291,40 @@
     connect(value);
   });
 
-  const initialCode = new URLSearchParams(location.search).get('code');
-  if (/^\d{4}$/.test(initialCode ?? '')) {
+  // PC操作画面が同じブラウザで開いた再生タブ。KVではなく BroadcastChannel / localStorage で同期する
+  function stopPlayback() {
+    [videoEl, audioEl, audio2El].forEach((el) => { el.pause(); el.removeAttribute('src'); });
+    videoEl.load();
+    current.visual = null;
+    current.sound = null;
+    sceneNameEl.hidden = true;
+    waitingEl.hidden = false;
+  }
+  function handlePcMessage(payload) {
+    if (!payload || typeof payload !== 'object') return;
+    if (payload.type === 'stop') stopPlayback();
+    else if (payload.type === 'scene' && payload.scene) applyScene(payload.scene);
+  }
+  function connectLocal() {
+    document.title = 'PC出力 | PORTA';
+    formScreenEl.hidden = true;
+    waitingEl.hidden = false;
+    tapOverlayEl.hidden = userStarted;
+    try { handlePcMessage(JSON.parse(localStorage.getItem('pcScene') ?? 'null')); } catch (e) { /* 壊れた値は無視 */ }
+    if ('BroadcastChannel' in window) {
+      new BroadcastChannel('porta-scene').onmessage = (event) => handlePcMessage(event.data);
+    }
+    window.addEventListener('storage', (event) => {
+      if (event.key !== 'pcScene' || !event.newValue) return;
+      try { handlePcMessage(JSON.parse(event.newValue)); } catch (e) { /* 無視 */ }
+    });
+  }
+
+  const params = new URLSearchParams(location.search);
+  const initialCode = params.get('code');
+  if (params.get('source') === 'pc') {
+    connectLocal();
+  } else if (/^\d{4}$/.test(initialCode ?? '')) {
     connect(initialCode);
   } else {
     showForm();
