@@ -106,6 +106,29 @@
     font-size: 0.85rem;
     margin-top: 12px;
   }
+  .actions {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .back-link {
+    display: block;
+    padding: 12px;
+    border-radius: 12px;
+    background: var(--sunset-deep);
+    color: #fff;
+    font-weight: 600;
+    text-decoration: none;
+  }
+  .new-code {
+    border: none;
+    background: none;
+    color: var(--text-sub);
+    font-size: 0.85rem;
+    text-decoration: underline;
+    cursor: pointer;
+  }
 </style>
 </head>
 <body>
@@ -122,6 +145,10 @@
       <span>スマートフォンの接続を待っています…</span>
     </div>
     <div id="error" class="error" style="display:none;"></div>
+    <div class="actions">
+      <a class="back-link" id="backToPc" href="/">← PC操作画面へ戻る</a>
+      <button class="new-code" id="newCode" type="button">別のコードを発行する</button>
+    </div>
   </div>
 
 <script>
@@ -174,19 +201,38 @@
     }
   }
 
+  // 再読み込みしてもスマホの再接続が要らないように、生きているコードは使い回す
+  async function reusableCode() {
+    const saved = localStorage.getItem('pairingCode');
+    if (!/^\d{4}$/.test(saved ?? '')) return null;
+    try {
+      const res = await fetch(`/api/scene/${encodeURIComponent(saved)}`, { cache: 'no-store' });
+      return res.ok ? saved : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  async function issueCode() {
+    const res = await fetch('/api/pair', { method: 'POST' });
+    if (!res.ok) {
+      throw new Error(`ペアリングコードの発行に失敗しました (status: ${res.status})`);
+    }
+    const data = await res.json();
+    if (!data.code) {
+      throw new Error('サーバーからコードが返されませんでした');
+    }
+    return data.code;
+  }
+
   async function initPairing() {
     try {
-      const res = await fetch('/api/pair', { method: 'POST' });
-      if (!res.ok) {
-        throw new Error(`ペアリングコードの発行に失敗しました (status: ${res.status})`);
-      }
-      const data = await res.json();
-      const code = data.code;
-      if (!code) {
-        throw new Error('サーバーからコードが返されませんでした');
-      }
+      const code = (await reusableCode()) ?? (await issueCode());
+      // PC操作画面(index.html)はこのコード宛にシーンを送る
+      localStorage.setItem('pairingCode', code);
 
       renderCode(code);
+      pollScene(code);
       pollTimer = setInterval(() => pollScene(code), POLL_INTERVAL_MS);
     } catch (e) {
       codeEl.textContent = '----';
@@ -194,6 +240,11 @@
       showError(e.message || 'コードの発行に失敗しました。ページを再読み込みしてください。');
     }
   }
+
+  document.getElementById('newCode').addEventListener('click', () => {
+    localStorage.removeItem('pairingCode');
+    location.reload();
+  });
 
   initPairing();
 </script>
