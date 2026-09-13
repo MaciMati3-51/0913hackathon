@@ -9,9 +9,13 @@ PC操作画面・デバイス設定画面・スマホ表示画面とCloudflare P
 | 開発・PC操作画面 | http://localhost:8788/ |
 | 開発・デバイス設定画面 | http://localhost:8788/pair.html |
 | 開発・スマホ表示画面 | http://localhost:8788/display.html |
-| 本番 | **未作成・未確認**。Pages作成後にダッシュボードが発行するURLをここへ記載 |
+| 本番 | https://0913hackathon.pages.dev |
 
-プロジェクト名に `0913hackathon` が使用できた場合、本番URLは `https://0913hackathon.pages.dev` となる想定です。作成前のため確定URLではありません。
+本番のデバイス設定画面: https://0913hackathon.pages.dev/pair.html
+
+本番のスマホ表示画面: https://0913hackathon.pages.dev/display.html
+
+GitHub連携済み。`main` へのpushで本番へ自動デプロイします。
 
 ## ローカル開発
 
