@@ -17,7 +17,7 @@ PC操作画面・デバイス設定画面・スマホ表示画面とCloudflare P
 
 GitHubリポジトリとproduction branch `main` は設定済み。初回デプロイはAPIから起動し、約27秒で成功しました。本番3画面とKV読み取りを確認済みです。
 
-**残作業:** pushによる自動デプロイは未確認（検証pushでは起動せず）。CloudflareダッシュボードからGitHubアプリの対象リポジトリアクセスを確認・認可後、mainへpushして自動起動を再検証してください。
+GitHubアプリのリポジトリアクセス認可済み。`main` のpushを本番、その他のブランチのpushをプレビューへ自動デプロイする設定です。
 
 ## ローカル開発
 
@@ -101,3 +101,20 @@ wrangler.toml        PagesとKVの設定
 デプロイ時間はCloudflareの待ち行列・ビルド時間に依存します。数十秒での反映は実測して確認してください。
 
 公式資料: [Git連携](https://developers.cloudflare.com/pages/get-started/git-integration/)、[Wrangler設定](https://developers.cloudflare.com/pages/functions/wrangler-configuration/)、[KV bindings](https://developers.cloudflare.com/pages/functions/bindings/)。
+
+## シーン生成API（モック / Issue #2）
+
+```sh
+curl --fail http://localhost:8788/api/generate-scene \
+  -H 'Content-Type: application/json' \
+  -d '{"text":"2026年8月の夕方の湘南の海にして"}'
+```
+
+`POST /api/generate-scene` はScene1のJSONを直接返します（`scene` 等のラッパーなし）。
+「湘南」「海」「夕方」を含む入力も、それ以外・空文字の入力も同じScene1にフォールバックします。
+不正なJSONや文字列ではない `text` は400、POST以外は405です。
+
+生成処理は `lib/scene-generator.js` の `mockGenerateScene(text)` に分離しています。
+Issue #5ではこのAdapterをLLM呼び出しへ差し替えます。現時点では外部API・KVを使用しません。
+
+`npm test` で入力例、フォールバック、不正入力、メソッド制限を検証できます。
