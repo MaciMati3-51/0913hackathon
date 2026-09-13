@@ -156,6 +156,27 @@ UI側は送信前のシーンと比較して「Brightness 20% → 10%」のよ�
 
 判定処理は `lib/scene-adjuster.js` の `mockAdjustScene(scene, text)` に分離しています。`OPENAI_API_KEY` があれば LLM が優先され、失敗時はこのモックにフォールバックします。
 
+## 雰囲気ヒアリングAPI（Issue #23 / docs/interview-flow.md）
+
+`POST /api/interview` は、シーン確認の前に最大3問で雰囲気（`time` / `density` / `body`）を詰めます。state はクライアントが持ち回り、KV は使いません。
+
+```sh
+curl --fail http://localhost:8788/api/interview \
+  -H 'Content-Type: application/json' \
+  -d '{"state":{"turn":1,"slots":{}},"answer":"chip_sunset"}'
+# → {"state":{"turn":2,"slots":{"time":"sunset","density":"quiet"}},"done":false,"question":{"axis":"body",...}}
+curl --fail http://localhost:8788/api/interview \
+  -H 'Content-Type: application/json' \
+  -d '{"state":{"turn":2,"slots":{"time":"sunset","density":"quiet"}},"answer":"cool"}'
+# → {"state":{...},"done":true,"summary":"人のいない夕暮れの海で、涼しい風にあたる","defaults":[],"scene":{...},"source":"mock|llm"}
+```
+
+- Q1（自由文）: チップID/文言や選択肢IDはそのまま確定。自由文は `OPENAI_API_KEY` があれば LLM（strict JSON Schema、3秒）で抽出、無い・失敗時はキーワード判定
+- Q2/Q3 の質問文・選択肢・家電プレビュー値は `lib/interview.js` の固定テーブル。次に聞く軸は `time → density → body` の順で、最後の1問は必ず `body`
+- 3問で埋まらない軸は既定値（sunset / quiet / mild）で埋め、`defaults` に列挙して UI で「AIが決めました」と表示
+- 完了時は合成文を `generateScene` に渡し、選択肢で見せた値（照明・音・室温・風）で上書きする。`sound: ocean_wave_breeze` は display.html で波＋海風の2レイヤー再生、`time` は映像の色味フィルタで表現
+- `body` は index.html が `localStorage`（`pref.body`）に保存し、2回目以降は聞かない（質問が3問→2問に減る）
+
 ## LLM接続（Issue #5）
 
 `lib/llm.js` が `POST /api/generate-scene` と `POST /api/adjust-scene` の本体です。
