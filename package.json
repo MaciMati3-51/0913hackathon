@@ -6,12 +6,14 @@
     "build": "node scripts/build.mjs",
     "dev": "npm run build && wrangler pages dev dist --kv APP_KV",
     "check": "npm run build && wrangler pages functions build functions --outdir .check",
-    "test": "node --test"
+    "test": "node --test",
+    "test:e2e": "node scripts/e2e-integration.mjs"
   },
   "engines": {
     "node": ">=22"
   },
   "devDependencies": {
+    "playwright": "^1.63.0",
     "wrangler": "^4.0.0"
   }
 }

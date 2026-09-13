@@ -24,10 +24,21 @@ GitHubアプリのリポジトリアクセス認可済み。`main` のpushを本
 1. PCで `/pair.html` を開く。4桁コードとQRが表示され、コードは `localStorage` に保存される（再読み込みしても同じコードを使い回す。「別のコードを発行する」で更新）
 2. スマホでQRを読む（または `/display.html?code=XXXX` を開く）。pair.html が「接続済み」になる
 3. PCで「← PC操作画面へ戻る」→ トップバーに「📱 スマホ接続済み · コード XXXX」が出る
-4. 季節を入力して「季節をつくる」→「この季節を体験する」。この時点でシーンが `POST /api/scene/XXXX` に送られ、スマホが1.5秒以内に映像・音を再生する（スマホは最初に1回タップして再生を許可）
+4. 雰囲気をひとこと入力するかチップをタップ → AIが最大3問（時間帯・人の気配・体感）を聞く。選択肢の下の値がそのまま家電に設定される → 要約「〜でいい？」→「この季節を体験する」。この時点でシーンが `POST /api/scene/XXXX` に送られ、スマホが1.5秒以内に映像・音を再生する（スマホは最初に1回タップして再生を許可）
 5. 体験中のチャット（「もう少し暗くして」等）は毎回シーンを送り直すので、スマホの映像の明るさも追従する
 
-結合テストは `scratchpad/e2e/integration.mjs`（Playwright）で PC画面とスマホ画面を同時に動かして自動化している（リポジトリ外の作業用スクリプト）。
+### 結合テスト（自動）
+
+`scripts/e2e-integration.mjs` が Playwright（ヘッドレスChromium）で PC画面とスマホ画面を同時に動かし、コード発行 → 接続 → ヒアリング → 体験開始 → スマホの映像・音 → 会話変更の追従まで確認する。
+
+```sh
+npx playwright install chromium        # 初回のみ
+npm run dev                            # 別ターミナルでローカルを起動する場合
+npm run test:e2e -- http://localhost:8788
+npm run test:e2e -- https://0913hackathon.pages.dev
+```
+
+`INTEGRATION TEST PASSED` が出れば通し動作OK。失敗時は `pc-fail.png` / `phone-fail.png` にスクリーンショットが残る。
 
 ## ローカル開発
 
