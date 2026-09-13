@@ -1,21 +1,201 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>デバイス設定画面 | 0913hackathon</title>
-  <link rel="stylesheet" href="/assets/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>出力デバイスの設定 | 季節文化メーカー</title>
+<style>
+  :root {
+    --sunset-orange: #ff7e4d;
+    --sunset-pink: #ff5f7e;
+    --sunset-deep: #3b2148;
+    --card-bg: rgba(255, 255, 255, 0.92);
+    --text-main: #3b2148;
+    --text-sub: #8a6a7a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    font-family: "Hiragino Sans", "Yu Gothic", "Segoe UI", sans-serif;
+    background: linear-gradient(160deg, #ffb37a 0%, #ff7e6b 35%, #ff5f8a 65%, #6a4a8a 100%);
+    color: var(--text-main);
+  }
+  .card {
+    background: var(--card-bg);
+    border-radius: 24px;
+    padding: 40px 32px;
+    max-width: 420px;
+    width: 100%;
+    text-align: center;
+    box-shadow: 0 20px 60px rgba(59, 33, 72, 0.35);
+  }
+  h1 {
+    font-size: 1.3rem;
+    margin: 0 0 24px;
+    color: var(--sunset-deep);
+  }
+  .code {
+    font-size: 3.5rem;
+    font-weight: 700;
+    letter-spacing: 0.25em;
+    color: var(--sunset-orange);
+    margin: 8px 0 24px;
+    min-height: 1.2em;
+  }
+  .code.loading {
+    font-size: 1.1rem;
+    color: var(--text-sub);
+    letter-spacing: normal;
+  }
+  .qr-wrap {
+    background: #fff;
+    border-radius: 16px;
+    padding: 12px;
+    display: inline-block;
+    margin-bottom: 20px;
+  }
+  .qr-wrap img {
+    display: block;
+    width: 200px;
+    height: 200px;
+  }
+  .hint {
+    font-size: 0.9rem;
+    color: var(--text-sub);
+    line-height: 1.6;
+    margin-bottom: 8px;
+  }
+  .url {
+    font-size: 0.8rem;
+    color: var(--sunset-pink);
+    word-break: break-all;
+    margin-bottom: 20px;
+  }
+  .status {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    font-size: 0.95rem;
+    color: var(--text-sub);
+    min-height: 1.5em;
+  }
+  .status.connected {
+    color: #2f9e5b;
+    font-weight: 600;
+    font-size: 1.1rem;
+  }
+  .dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--sunset-orange);
+    animation: pulse 1.2s infinite ease-in-out;
+  }
+  @keyframes pulse {
+    0%, 100% { opacity: 0.3; }
+    50% { opacity: 1; }
+  }
+  .error {
+    color: #c0392b;
+    font-size: 0.85rem;
+    margin-top: 12px;
+  }
+</style>
 </head>
 <body>
-  <main>
-    <p>0913hackathon</p>
-    <h1>デバイス設定画面</h1>
-    <p>デバイスのペアリングと設定の画面をここに実装します。</p>
-    <nav aria-label="画面一覧">
-      <a href="/">PC操作画面</a>
-      <a href="/pair.html">デバイス設定画面</a>
-      <a href="/display.html">スマホ表示画面</a>
-    </nav>
-  </main>
+  <div class="card">
+    <h1>出力デバイスの設定</h1>
+    <div id="code" class="code loading">コード発行中…</div>
+    <div id="qrWrap" class="qr-wrap" style="display:none;">
+      <img id="qrImg" alt="接続用QRコード">
+    </div>
+    <p class="hint">スマートフォンでカメラを向けるか、下のURLにアクセスしてください</p>
+    <div id="url" class="url"></div>
+    <div id="status" class="status">
+      <span class="dot"></span>
+      <span>スマートフォンの接続を待っています…</span>
+    </div>
+    <div id="error" class="error" style="display:none;"></div>
+  </div>
+
+<script>
+  const POLL_INTERVAL_MS = 1500;
+  let pollTimer = null;
+
+  const codeEl = document.getElementById('code');
+  const qrWrapEl = document.getElementById('qrWrap');
+  const qrImgEl = document.getElementById('qrImg');
+  const urlEl = document.getElementById('url');
+  const statusEl = document.getElementById('status');
+  const errorEl = document.getElementById('error');
+
+  function showError(message) {
+    errorEl.textContent = message;
+    errorEl.style.display = 'block';
+  }
+
+  function renderCode(code) {
+    codeEl.textContent = code;
+    codeEl.classList.remove('loading');
+
+    const connectUrl = `${location.origin}/display.html?code=${encodeURIComponent(code)}`;
+    urlEl.textContent = connectUrl;
+
+    const qrSrc = `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(connectUrl)}`;
+    qrImgEl.src = qrSrc;
+    qrWrapEl.style.display = 'inline-block';
+  }
+
+  function showConnected() {
+    statusEl.classList.add('connected');
+    statusEl.innerHTML = '<span>✅ スマートフォンに接続済み</span>';
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+  }
+
+  async function pollScene(code) {
+    try {
+      const res = await fetch(`/api/scene/${encodeURIComponent(code)}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data && data.connected) {
+        showConnected();
+      }
+    } catch (e) {
+      // ネットワーク瞬断はポーリングを止めずに次回リトライする
+    }
+  }
+
+  async function initPairing() {
+    try {
+      const res = await fetch('/api/pair', { method: 'POST' });
+      if (!res.ok) {
+        throw new Error(`ペアリングコードの発行に失敗しました (status: ${res.status})`);
+      }
+      const data = await res.json();
+      const code = data.code;
+      if (!code) {
+        throw new Error('サーバーからコードが返されませんでした');
+      }
+
+      renderCode(code);
+      pollTimer = setInterval(() => pollScene(code), POLL_INTERVAL_MS);
+    } catch (e) {
+      codeEl.textContent = '----';
+      codeEl.classList.remove('loading');
+      showError(e.message || 'コードの発行に失敗しました。ページを再読み込みしてください。');
+    }
+  }
+
+  initPairing();
+</script>
 </body>
 </html>
