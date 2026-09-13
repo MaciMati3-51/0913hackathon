@@ -1,21 +1,284 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="ja">
 <head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>スマホ表示画面 | 0913hackathon</title>
-  <link rel="stylesheet" href="/assets/style.css">
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>スマホ表示画面 | 季節文化メーカー</title>
+<style>
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  html, body {
+    margin: 0;
+    height: 100%;
+    overflow: hidden;
+    background: #000;
+    color: #fff;
+    font-family: "Hiragino Sans", "Yu Gothic", "Segoe UI", sans-serif;
+  }
+  #video {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    background: #000;
+    transition: filter 1s ease;
+  }
+  #sceneName {
+    position: fixed;
+    left: 12px;
+    bottom: calc(12px + env(safe-area-inset-bottom));
+    padding: 4px 12px;
+    border-radius: 999px;
+    background: rgba(0, 0, 0, 0.35);
+    color: rgba(255, 255, 255, 0.85);
+    font-size: 12px;
+    pointer-events: none;
+  }
+  .screen {
+    position: fixed;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    padding: 24px;
+    text-align: center;
+  }
+  #waiting {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 14px;
+    line-height: 1.8;
+  }
+  #formScreen {
+    background: linear-gradient(160deg, #ffb37a 0%, #ff7e6b 35%, #ff5f8a 65%, #6a4a8a 100%);
+  }
+  #formScreen h1 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+  #formScreen p {
+    margin: 0;
+    font-size: 0.9rem;
+    opacity: 0.9;
+  }
+  #codeForm {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    width: min(280px, 100%);
+  }
+  #codeInput {
+    width: 100%;
+    padding: 12px;
+    border: none;
+    border-radius: 12px;
+    font-size: 2rem;
+    letter-spacing: 0.4em;
+    text-align: center;
+    color: #3b2148;
+  }
+  #codeForm button {
+    padding: 12px;
+    border: none;
+    border-radius: 12px;
+    background: #3b2148;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 600;
+  }
+  #formError {
+    min-height: 1.4em;
+    color: #fff3b0;
+    font-size: 0.85rem;
+  }
+  #tapOverlay {
+    background: rgba(0, 0, 0, 0.55);
+    cursor: pointer;
+    font-size: 1.1rem;
+  }
+  #tapOverlay .icon {
+    font-size: 3rem;
+  }
+</style>
 </head>
 <body>
-  <main>
-    <p>0913hackathon</p>
+  <video id="video" muted loop playsinline autoplay></video>
+  <audio id="audio" loop></audio>
+
+  <div id="waiting" class="screen" hidden>PCで季節を選ぶと、<br>ここに映像が流れます</div>
+  <div id="sceneName" hidden></div>
+
+  <div id="tapOverlay" class="screen" hidden>
+    <div class="icon">▶</div>
+    <div>タップして再生を開始</div>
+  </div>
+
+  <div id="formScreen" class="screen" hidden>
     <h1>スマホ表示画面</h1>
-    <p>スマートフォン向けの映像表示をここに実装します。</p>
-    <nav aria-label="画面一覧">
-      <a href="/">PC操作画面</a>
-      <a href="/pair.html">デバイス設定画面</a>
-      <a href="/display.html">スマホ表示画面</a>
-    </nav>
-  </main>
+    <p>PCの「出力デバイスの設定」に表示された<br>4桁のコードを入力してください</p>
+    <form id="codeForm">
+      <input id="codeInput" type="text" inputmode="numeric" pattern="\d{4}" maxlength="4" autocomplete="off" placeholder="0000" required>
+      <button type="submit">接続する</button>
+    </form>
+    <div id="formError"></div>
+  </div>
+
+<script>
+  const POLL_INTERVAL_MS = 1500;
+  const VIDEO_BY_VISUAL = {
+    shonan_sunset: '/assets/videos/scene1-shonan-sunset-01.mp4',
+  };
+  const AUDIO_BY_SOUND = {
+    ocean_wave: '/assets/audio/scene1-ocean-waves-01.mp3',
+  };
+  const TIME_LABELS = {
+    morning: '朝',
+    noon: '昼',
+    evening: '夕方',
+    sunset: '夕暮れ',
+    night: '夜',
+  };
+
+  const videoEl = document.getElementById('video');
+  const audioEl = document.getElementById('audio');
+  const waitingEl = document.getElementById('waiting');
+  const sceneNameEl = document.getElementById('sceneName');
+  const tapOverlayEl = document.getElementById('tapOverlay');
+  const formScreenEl = document.getElementById('formScreen');
+  const codeFormEl = document.getElementById('codeForm');
+  const codeInputEl = document.getElementById('codeInput');
+  const formErrorEl = document.getElementById('formError');
+
+  let code = null;
+  let pollTimer = null;
+  let userStarted = false;
+  let connecting = false;
+  const current = { visual: null, sound: null };
+
+  function sceneUrl() {
+    return `/api/scene/${encodeURIComponent(code)}`;
+  }
+
+  function showForm(message = '') {
+    if (pollTimer) {
+      clearInterval(pollTimer);
+      pollTimer = null;
+    }
+    code = null;
+    waitingEl.hidden = true;
+    tapOverlayEl.hidden = true;
+    formErrorEl.textContent = message;
+    formScreenEl.hidden = false;
+    codeInputEl.focus();
+  }
+
+  function connect(newCode) {
+    code = newCode;
+    history.replaceState(null, '', `?code=${encodeURIComponent(code)}`);
+    formScreenEl.hidden = true;
+    waitingEl.hidden = false;
+    tapOverlayEl.hidden = userStarted;
+    poll();
+    pollTimer = setInterval(poll, POLL_INTERVAL_MS);
+  }
+
+  // 取得した状態にフラグを足して送り返すので、APIが部分更新でも全体置換でもシーンを消さない
+  async function markConnected(state) {
+    if (connecting) return;
+    connecting = true;
+    try {
+      await fetch(sceneUrl(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ...state, connected: true }),
+      });
+    } catch (e) {
+      // 次回のポーリングで connected が false のままなら再送される
+    } finally {
+      connecting = false;
+    }
+  }
+
+  async function poll() {
+    const requestedCode = code;
+    let res;
+    try {
+      res = await fetch(sceneUrl(), { cache: 'no-store' });
+    } catch (e) {
+      return;
+    }
+    if (requestedCode !== code) return;
+    if (res.status === 404) {
+      showForm('このコードは見つかりませんでした。もう一度確認してください。');
+      return;
+    }
+    if (!res.ok) return;
+
+    const state = await res.json();
+    if (!state.connected) markConnected(state);
+    applyScene(state.scene);
+  }
+
+  function applyScene(scene) {
+    if (!scene) return;
+    waitingEl.hidden = true;
+
+    const timeLabel = TIME_LABELS[scene.time] ?? scene.time;
+    sceneNameEl.textContent = [scene.location, timeLabel].filter(Boolean).join('の');
+    sceneNameEl.hidden = false;
+
+    const brightness = Number(scene.light?.brightness);
+    // 照明0%でも映像が真っ暗にならないよう 0.4〜1.0 の範囲に収める
+    videoEl.style.filter = Number.isFinite(brightness)
+      ? `brightness(${0.4 + (Math.min(100, Math.max(0, brightness)) / 100) * 0.6})`
+      : '';
+
+    if (scene.visual !== current.visual && VIDEO_BY_VISUAL[scene.visual]) {
+      current.visual = scene.visual;
+      videoEl.src = VIDEO_BY_VISUAL[scene.visual];
+      videoEl.play().catch(() => {});
+    }
+    if (scene.sound !== current.sound && AUDIO_BY_SOUND[scene.sound]) {
+      current.sound = scene.sound;
+      audioEl.src = AUDIO_BY_SOUND[scene.sound];
+      if (userStarted) playAudio();
+    }
+  }
+
+  function playAudio() {
+    if (!audioEl.src) return;
+    // iOSではタップ外の再生が拒否されることがあるので、その時はもう一度タップしてもらう
+    audioEl.play().catch(() => {
+      tapOverlayEl.hidden = false;
+    });
+  }
+
+  tapOverlayEl.addEventListener('click', () => {
+    userStarted = true;
+    tapOverlayEl.hidden = true;
+    document.documentElement.requestFullscreen?.().catch(() => {});
+    if (videoEl.src) videoEl.play().catch(() => {});
+    playAudio();
+  });
+
+  codeFormEl.addEventListener('submit', (event) => {
+    event.preventDefault();
+    const value = codeInputEl.value.trim();
+    if (!/^\d{4}$/.test(value)) {
+      formErrorEl.textContent = '4桁の数字を入力してください';
+      return;
+    }
+    connect(value);
+  });
+
+  const initialCode = new URLSearchParams(location.search).get('code');
+  if (/^\d{4}$/.test(initialCode ?? '')) {
+    connect(initialCode);
+  } else {
+    showForm();
+  }
+</script>
 </body>
 </html>
