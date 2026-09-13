@@ -433,13 +433,13 @@
         if (next.aroma !== scene.aroma) changed.push("aromaDevice");
         scene = next; reply = result.message || result.reply || reply;
       } catch (error) {
-        if (/暗|明るさ.*下|照明.*下/.test(message)) { scene.light.brightness = scene.light.brightness - 10; changed.push("lightDevice"); reply = `照明を ${scene.light.brightness}% に落としました。`; }
+        if (/暗|明るさ.*下|照明.*下/.test(message)) { scene.light.brightness = Math.max(0, scene.light.brightness - 10); changed.push("lightDevice"); reply = `照明を ${scene.light.brightness}% に落としました。`; }
         else if (/明るく/.test(message)) { scene.light.brightness = Math.min(100, scene.light.brightness + 10); changed.push("lightDevice"); reply = `照明を ${scene.light.brightness}% に上げました。`; }
         else if (/暑|涼しく|温度.*下/.test(message)) { scene.temperature = scene.temperature - 2; changed.push("tempDevice"); reply = `エアコンを ${scene.temperature}℃ にしました。`; }
         else if (/寒|暖か|温度.*上/.test(message)) { scene.temperature = scene.temperature + 2; changed.push("tempDevice"); reply = `エアコンを ${scene.temperature}℃ にしました。`; }
         else if (/風.*強/.test(message)) { scene.fan = scene.fan === "low" ? "medium" : "high"; changed.push("fanDevice"); reply = "海風を一段階強くしました。"; }
         else if (/風.*弱/.test(message)) { scene.fan = scene.fan === "high" ? "medium" : "low"; changed.push("fanDevice"); reply = "海風を一段階やさしくしました。"; }
-        else { reply = "その雰囲気をシーンに反映しました。光・温度・風の調整も頼めます。"; }
+        else { reply = "設定は変更していません。光・温度・風の調整を頼めます。"; }
       }
       renderScene(); renderDevices(changed);
       const aiMessage = document.createElement("div"); aiMessage.className = "message ai"; aiMessage.textContent = reply; $("chatLog").append(aiMessage); $("chatLog").scrollTop = $("chatLog").scrollHeight; $("sendButton").disabled = false; $("chatInput").focus();
