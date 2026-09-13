@@ -135,8 +135,7 @@
   };
   const TIME_LABELS = {
     morning: '朝',
-    noon: '昼',
-    evening: '夕方',
+    day: '昼',
     sunset: '夕暮れ',
     night: '夜',
   };
@@ -184,15 +183,14 @@
     pollTimer = setInterval(poll, POLL_INTERVAL_MS);
   }
 
-  // 取得した状態にフラグを足して送り返すので、APIが部分更新でも全体置換でもシーンを消さない
-  async function markConnected(state) {
+  async function markConnected() {
     if (connecting) return;
     connecting = true;
     try {
       await fetch(sceneUrl(), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ ...state, connected: true }),
+        body: JSON.stringify({ connected: true }),
       });
     } catch (e) {
       // 次回のポーリングで connected が false のままなら再送される
@@ -216,13 +214,13 @@
     }
     if (!res.ok) return;
 
-    const state = await res.json();
-    if (!state.connected) markConnected(state);
-    applyScene(state.scene);
+    const { connected, ...scene } = await res.json();
+    if (!connected) markConnected();
+    applyScene(scene);
   }
 
   function applyScene(scene) {
-    if (!scene) return;
+    if (!scene.visual && !scene.sound) return;
     waitingEl.hidden = true;
 
     const timeLabel = TIME_LABELS[scene.time] ?? scene.time;
