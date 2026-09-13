@@ -27,6 +27,10 @@ function fakeFetch(handler) {
 }
 
 const ok = (parsed) => new Response(JSON.stringify({ status: 'completed', output_text: JSON.stringify(parsed) }));
+const okRestShape = (parsed) => new Response(JSON.stringify({
+  status: 'completed',
+  output: [{ type: 'message', content: [{ type: 'output_text', text: JSON.stringify(parsed) }] }],
+}));
 
 test('generateScene uses mock when no API key is configured', async () => {
   const result = await generateScene('湘南の海', {});
@@ -51,6 +55,12 @@ test('LLM_MODEL env overrides the model', async () => {
   const client = fakeFetch(() => ok(llmScene()));
   await generateScene('海', { OPENAI_API_KEY: 'k', LLM_MODEL: 'gpt-4.1' }, { fetcher: client.fetcher });
   assert.equal(client.calls[0].body.model, 'gpt-4.1');
+});
+
+test('generateScene parses the raw Responses API output array', async () => {
+  const client = fakeFetch(() => okRestShape(llmScene()));
+  const result = await generateScene('鎌倉', { OPENAI_API_KEY: 'k' }, { fetcher: client.fetcher });
+  assert.deepEqual(result, { scene: llmScene(), source: 'llm' });
 });
 
 test('generateScene falls back to mock when the LLM throws', async () => {
