@@ -66,6 +66,7 @@
       background: rgba(255,255,255,.04);
     }
     .status-dot { width: 7px; height: 7px; border-radius: 50%; background: #75d4ab; box-shadow: 0 0 12px #75d4ab; }
+    .topbar-right { display: flex; align-items: center; gap: 8px; }
     a.status-pill { text-decoration: none; }
     a.status-pill:hover { border-color: rgba(255,196,108,.45); }
     .status-dot.off { background: #ff9a6b; box-shadow: 0 0 12px #ff9a6b; }
@@ -254,7 +255,10 @@
   <section class="view is-active" id="homeView" aria-labelledby="homeTitle">
     <header class="topbar shell">
       <div class="brand"><span class="brand-mark" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 3v18M3 12h18M5.6 5.6l12.8 12.8M18.4 5.6 5.6 18.4"/></svg></span><span class="brand-label">PORTA</span></div>
-      <a class="status-pill" id="pairStatus" href="/pair.html"><span class="status-dot off" id="pairDot"></span><span id="pairStatusText">📱 スマホ未接続 · 出力デバイスを設定</span></a>
+      <div class="topbar-right">
+        <a class="status-pill" id="pairStatus" href="/pair.html"><span class="status-dot off" id="pairDot"></span><span id="pairStatusText">📱 スマホ未接続 · 出力デバイスを設定</span></a>
+        <a class="status-pill" id="devicesLink" href="/devices.html">⚙ 家電設定</a>
+      </div>
     </header>
     <main class="home shell">
       <div class="hero">

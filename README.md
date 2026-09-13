@@ -62,8 +62,9 @@ curl --fail http://localhost:8788/api/health
 
 ```text
 index.html           PC操作画面
-pair.html            デバイス設定画面
+pair.html            デバイス設定画面（スマホとのペアリング）
 display.html         スマホ表示画面
+devices.html         家電設定画面（6台の一覧。TV・スピーカーはスマホ代替の接続状態、他は仮想デバイス表示）
 functions/api/       Pages Functions（env.APP_KVを使用）
 assets/videos/       映像素材
 assets/audio/        音声素材

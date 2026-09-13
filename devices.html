@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#152842">
+  <title>家電設定 | PORTA</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --ink: #fffaf0; --muted: #c7d0de; --navy-deep: #081322;
+      --line: rgba(255,255,255,.13); --glass: rgba(11,25,43,.62);
+      --orange: #ff855f; --sun: #ffc46c; --aqua: #68c6c8; --green: #75d4ab;
+      --shadow: 0 22px 80px rgba(2,8,18,.38);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0; min-height: 100vh; color: var(--ink);
+      background:
+        radial-gradient(circle at 78% 4%, rgba(255,142,94,.24), transparent 32rem),
+        radial-gradient(circle at 13% 83%, rgba(54,144,163,.22), transparent 34rem),
+        var(--navy-deep);
+      font-family: Inter, "Noto Sans JP", "Hiragino Sans", system-ui, sans-serif; letter-spacing: .02em;
+    }
+    a { color: inherit; }
+    .shell { width: min(1180px, calc(100% - 40px)); margin: 0 auto; }
+    .topbar { height: 78px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
+    .brand { display: flex; gap: 12px; align-items: center; font-weight: 780; text-decoration: none; }
+    .brand-mark { width: 37px; height: 37px; border-radius: 50%; display: grid; place-items: center; background: linear-gradient(140deg, var(--sun), var(--orange)); color: #142238; box-shadow: 0 0 34px rgba(255,150,91,.35); }
+    .back { color: var(--muted); text-decoration: none; font-size: 14px; }
+    .back:hover { color: var(--ink); }
+    main { padding: 56px 0 80px; }
+    .eyebrow { color: var(--sun); text-transform: uppercase; font-size: 11px; letter-spacing: .18em; font-weight: 800; }
+    h1 { font-size: clamp(34px, 5vw, 56px); letter-spacing: -.045em; margin: 8px 0 14px; }
+    .lead { color: var(--muted); max-width: 720px; line-height: 1.9; margin: 0 0 36px; }
+    .grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+    .device {
+      display: flex; flex-direction: column; gap: 14px; padding: 24px;
+      border: 1px solid var(--line); border-radius: 24px; background: var(--glass);
+      box-shadow: var(--shadow); backdrop-filter: blur(20px);
+    }
+    .device-head { display: flex; align-items: center; gap: 14px; }
+    .icon { width: 46px; height: 46px; border-radius: 14px; display: grid; place-items: center; font-size: 22px; background: rgba(255,196,108,.11); }
+    .device-head strong { display: block; font-size: 18px; }
+    .device-head small { color: var(--muted); }
+    .controls { color: var(--muted); font-size: 13px; line-height: 1.7; margin: 0; }
+    .controls b { color: var(--ink); font-weight: 600; }
+    .status { display: flex; align-items: center; gap: 8px; font-size: 13px; color: var(--muted); min-height: 1.6em; }
+    .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--orange); box-shadow: 0 0 12px var(--orange); flex: none; }
+    .dot.on { background: var(--green); box-shadow: 0 0 12px var(--green); }
+    .dot.virtual { background: var(--aqua); box-shadow: 0 0 12px var(--aqua); }
+    .actions { margin-top: auto; display: flex; gap: 8px; }
+    .btn {
+      flex: 1; text-align: center; padding: 12px 14px; border-radius: 14px; font: inherit; font-weight: 700;
+      border: 1px solid var(--line); background: rgba(255,255,255,.06); color: var(--ink); text-decoration: none; cursor: pointer;
+    }
+    .btn.primary { border: 0; background: linear-gradient(135deg, #ffb263, #ff745d); color: #192237; }
+    .btn:disabled { opacity: .45; cursor: not-allowed; }
+    .note { margin-top: 28px; color: var(--muted); font-size: 13px; line-height: 1.8; }
+    @media (max-width: 900px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .shell { width: min(100% - 28px, 680px); } .grid { grid-template-columns: 1fr; } .topbar { height: 66px; } }
+  </style>
+</head>
+<body>
+  <header class="topbar shell">
+    <a class="brand" href="/"><span class="brand-mark" aria-hidden="true">✦</span><span>PORTA</span></a>
+    <a class="back" href="/">← PC操作画面へ戻る</a>
+  </header>
+  <main class="shell">
+    <div class="eyebrow">Devices</div>
+    <h1>家電設定</h1>
+    <p class="lead">PORTA が体験中にまとめて制御する6台です。今回のデモでは TV・モニターとスピーカーをスマートフォンで代替し、それ以外の家電は体験画面のパネルで動作を可視化します。</p>
+    <div class="grid" id="devices"></div>
+    <p class="note">実機のメーカーAPI連携は Phase 2（要件定義書 21章）。AI は各機器を直接操作せず、Device Control Layer を通してシーンJSONの値を反映します。</p>
+  </main>
+
+  <script>
+    const DEVICES = [
+      { id: "ac", icon: "❄", name: "エアコン", role: "室温", controls: "設定温度 <b>18〜30℃</b>（安全範囲内で「その季節を感じられる」温度に）", kind: "virtual" },
+      { id: "tv", icon: "▣", name: "TV・モニター", role: "映像出力", controls: "シーン映像・<b>時間帯の色味</b>・照明に合わせた明るさ", kind: "phone" },
+      { id: "fan", icon: "≋", name: "扇風機", role: "風量", controls: "<b>弱 / 中 / 強</b>。将来は自然風の揺らぎ", kind: "virtual" },
+      { id: "aroma", icon: "◌", name: "アロマディフューザー", role: "香り", controls: "<b>潮風 / 夏草 / 森 / 屋台 / 雨</b> を切り替え", kind: "virtual" },
+      { id: "light", icon: "☀", name: "照明", role: "明るさ・色", controls: "明るさ <b>0〜100%</b>・<b>暖色 / 白色 / 寒色</b>", kind: "virtual" },
+      { id: "speaker", icon: "♫", name: "スピーカー", role: "環境音", controls: "<b>波・海風</b> などの環境音（2レイヤー）", kind: "phone" },
+    ];
+
+    const grid = document.getElementById("devices");
+    const statusEls = {};
+    for (const device of DEVICES) {
+      const card = document.createElement("article");
+      card.className = "device";
+      card.innerHTML = `
+        <div class="device-head"><div class="icon" aria-hidden="true">${device.icon}</div><div><strong>${device.name}</strong><small>${device.role}</small></div></div>
+        <p class="controls">${device.controls}</p>
+        <div class="status"><span class="dot ${device.kind === "virtual" ? "virtual" : ""}"></span><span class="status-text"></span></div>
+        <div class="actions">${device.kind === "phone"
+          ? '<a class="btn primary" href="/pair.html">接続設定 →</a>'
+          : '<button class="btn" type="button" disabled title="今回のデモでは実機に接続しません">設定（未対応）</button>'}</div>`;
+      grid.append(card);
+      statusEls[device.id] = { dot: card.querySelector(".dot"), text: card.querySelector(".status-text") };
+      if (device.kind === "virtual") statusEls[device.id].text.textContent = "仮想デバイス · 実機なし。体験中は画面のパネルで動作を表示";
+    }
+
+    // TV とスピーカーは同じスマートフォンで代替しているので、ペアリング状態をそのまま表示する
+    function setPhoneStatus(connected, text) {
+      for (const id of ["tv", "speaker"]) {
+        statusEls[id].dot.classList.toggle("on", connected);
+        statusEls[id].text.textContent = text;
+      }
+    }
+    async function refreshPhoneStatus() {
+      const code = localStorage.getItem("pairingCode");
+      if (!/^\d{4}$/.test(code ?? "")) return setPhoneStatus(false, "スマートフォンで代替 · 未設定（接続設定からコードを発行）");
+      try {
+        const response = await fetch(`/api/scene/${code}`, { cache: "no-store" });
+        if (response.status === 404) { localStorage.removeItem("pairingCode"); return setPhoneStatus(false, "コード期限切れ · 接続設定からやり直してください"); }
+        if (!response.ok) return;
+        const data = await response.json();
+        setPhoneStatus(Boolean(data.connected), data.connected
+          ? `スマートフォンで代替 · 接続済み（コード ${code}）`
+          : `スマートフォンで代替 · コード ${code} の接続待ち`);
+      } catch (error) { /* 次回の更新で再試行 */ }
+    }
+    refreshPhoneStatus();
+    setInterval(refreshPhoneStatus, 3000);
+  </script>
+</body>
+</html>
