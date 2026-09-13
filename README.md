@@ -118,3 +118,10 @@ curl --fail http://localhost:8788/api/generate-scene \
 Issue #5ではこのAdapterをLLM呼び出しへ差し替えます。現時点では外部API・KVを使用しません。
 
 `npm test` で入力例、フォールバック、不正入力、メソッド制限を検証できます。
+
+## ペアリング・シーン共有API（Issue #4）
+
+`POST /api/pair` で4桁コードを発行し、`GET /api/scene/:code` と
+`POST /api/scene/:code` でPC・スマホ間のシーンと接続フラグを共有します。
+API形式、UI連携手順、KVの同期遅延・書き込み制限は
+[ペアリングAPI仕様](docs/pairing-api.md)を参照してください。
