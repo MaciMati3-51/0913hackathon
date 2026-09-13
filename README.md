@@ -118,3 +118,30 @@ curl --fail http://localhost:8788/api/generate-scene \
 Issue #5ではこのAdapterをLLM呼び出しへ差し替えます。現時点では外部API・KVを使用しません。
 
 `npm test` で入力例、フォールバック、不正入力、メソッド制限を検証できます。
+
+## 会話変更API（モック / Issue #3）
+
+```sh
+curl --fail http://localhost:8788/api/adjust-scene \
+  -H 'Content-Type: application/json' \
+  -d '{"scene":{"light":{"brightness":20,"color":"warm"},"temperature":26,"fan":"low"},"text":"もう少し暗くして"}'
+```
+
+`POST /api/adjust-scene` は `scene`（現在のシーンJSON）と `text`（体験中の発話）を受け取り、更新後のシーンJSONをそのまま返します（ラッパーなし）。
+UI側は送信前のシーンと比較して「Brightness 20% → 10%」のような差分表示ができます。
+
+| 発話に含まれる語 | 変更 |
+| --- | --- |
+| 暗く | `light.brightness` −10 |
+| 明るく | `light.brightness` +10 |
+| 風 + 強 | `fan` を1段階上げる（low → medium → high） |
+| 風 + 弱 | `fan` を1段階下げる |
+| 寒 | `temperature` +2℃ |
+| 暑 | `temperature` −2℃ |
+| 夕方 / 夕暮れ | `light.brightness` −10、`fan` 1段階上、`time: "sunset"`、`light.color: "warm"` |
+
+複数の語を含む発話（「暗くして風を強くして」）は該当する変更を全て適用します。該当しない発話は入力のシーンをそのまま返します。
+安全制限（要件14.3）として `light.brightness` は0〜100、`temperature` は18〜30℃にクランプします。
+`scene` がオブジェクトでない、`text` が文字列でない場合は400、POST以外は405です。
+
+判定処理は `lib/scene-adjuster.js` の `mockAdjustScene(scene, text)` に分離しています。Issue #5でLLM呼び出しへ差し替えます。
