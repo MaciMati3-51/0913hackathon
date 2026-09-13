@@ -1,0 +1,11 @@
+name = "0913hackathon"
+compatibility_date = "2026-09-13"
+pages_build_output_dir = "./dist"
+
+[[kv_namespaces]]
+binding = "APP_KV"
+id = "b3f72aac7be24e29a0c24734e48960b2"
+
+[[env.preview.kv_namespaces]]
+binding = "APP_KV"
+id = "d0120b1b3eca4f15b7aea3d4b73881f7"
